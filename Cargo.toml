@@ -1,0 +1,23 @@
+[package]
+exclude = ["target/"]
+name = "procjail"
+version = "0.1.1"
+edition = "2021"
+rust-version = "1.70"
+license = "MIT"
+authors = ["Corum Collective LLC <engineering@corumcollective.com>"]
+repository = "https://github.com/santhsecurity/procjail"
+description = "Process sandbox for running untrusted code — Linux namespaces, seccomp, firejail, bubblewrap, rlimits"
+readme = "README.md"
+keywords = ["sandbox", "security", "isolation", "namespace", "seccomp"]
+categories = ["os::unix-apis"]
+
+[dependencies]
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+libc = "0.2"
+toml = "1.1.0"
+
+[dev-dependencies]
+tempfile = "3"
