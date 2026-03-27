@@ -127,7 +127,7 @@ impl TryFrom<&str> for Strategy {
             "rlimits-only" | "rlimits_only" | "rlimits" => Ok(Self::RlimitsOnly),
             "none" => Ok(Self::None),
             _ => Err(
-                "unknown strategy; use one of `unshare`, `bubblewrap`, `firejail`, `rlimits-only`, or `none`",
+                "unknown strategy. Fix: use one of `unshare`, `bubblewrap`, `firejail`, `rlimits-only`, or `none`.",
             ),
         }
     }

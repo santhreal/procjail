@@ -87,21 +87,21 @@ impl SandboxedProcess {
         // Validate work_dir is a real directory (not /dev/null, not a file).
         if !work_dir.is_dir() {
             return Err(anyhow::anyhow!(
-                "work_dir must be an existing directory, got: {}",
+                "work_dir must be an existing directory, got: {}. Fix: pass a real working directory for the sandbox process.",
                 work_dir.display()
             )
             .into());
         }
         if !harness_path.exists() {
             return Err(anyhow::anyhow!(
-                "harness_path must exist, got: {}",
+                "harness_path must exist, got: {}. Fix: create the harness file first or point procjail at an existing script.",
                 harness_path.display()
             )
             .into());
         }
         if !harness_path.is_file() {
             return Err(anyhow::anyhow!(
-                "harness_path must be a file, got: {}",
+                "harness_path must be a file, got: {}. Fix: pass a regular file path instead of a directory or device.",
                 harness_path.display()
             )
             .into());
@@ -619,7 +619,10 @@ fn which(name: &Path) -> AnyResult<std::path::PathBuf> {
         }
     }
     
-    Err(anyhow::anyhow!("runtime '{}' not found in PATH", name_str))
+    Err(anyhow::anyhow!(
+        "runtime '{}' not found in PATH. Fix: install the runtime or set `runtime_path` to an absolute executable path.",
+        name_str
+    ))
 }
 
 impl SandboxedIO for SandboxedProcess {

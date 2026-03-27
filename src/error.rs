@@ -13,9 +13,9 @@ pub enum ProcjailError {
     #[error("failed to parse procjail TOML configuration: {0}. Fix: keep settings at the top level, for example `runtime_path = \"node\"` and `timeout_seconds = 30`.")]
     TomlDe(#[from] toml::de::Error),
     /// Generic procjail failure with context.
-    #[error("{0}")]
+    #[error("{0}. Fix: verify the runtime path, containment strategy, harness file, and working directory before retrying.")]
     Message(String),
     /// Transparent anyhow error.
-    #[error(transparent)]
+    #[error("procjail operation failed: {0}. Fix: verify the runtime path, containment strategy, harness file, and working directory before retrying.")]
     Anyhow(#[from] anyhow::Error),
 }

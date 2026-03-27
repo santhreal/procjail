@@ -6,21 +6,17 @@ fn main() -> anyhow::Result<()> {
     let harness = temp.path().join("harness.js");
     std::fs::write(&harness, "console.log('sandbox harness');\n")?;
 
-    // We configure the sandbox to run `/bin/echo`
     let config = SandboxConfig::builder()
         .runtime("/bin/echo")
         .runtime_args(&["hello from sandbox"])
         .build();
 
-    // The harness script path is required, so create a temporary file for the demo.
     let mut process = SandboxedProcess::spawn(&harness, Path::new(temp.path()), &config)?;
 
-    // Read the output
     if let Some(line) = process.recv()? {
         println!("Output from sandbox: {}", line.trim());
     }
 
-    // Wait for the process to complete and print usage
     let usage = process.wait_with_usage()?;
     println!("Sandbox exited with code: {}", usage.exit_code);
 
