@@ -2,6 +2,8 @@
 
 #[cfg(target_os = "linux")]
 use std::fs;
+#[cfg(target_os = "linux")]
+use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
 use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::process::Command;
@@ -161,10 +163,14 @@ impl SandboxedProcess {
         let child_pid = child.id();
         let watchdog_cancel = Arc::new(AtomicBool::new(false));
         let watchdog_timed_out = Arc::new(AtomicBool::new(false));
+        #[cfg(target_os = "linux")]
+        let pidfd = open_pidfd(child_pid);
 
         if config.timeout_seconds > 0 {
             spawn_parent_watchdog(
                 child_pid,
+                #[cfg(target_os = "linux")]
+                pidfd,
                 config.timeout_seconds,
                 Arc::clone(&watchdog_cancel),
                 Arc::clone(&watchdog_timed_out),
@@ -636,6 +642,7 @@ impl SandboxedIO for SandboxedProcess {
 
 fn spawn_parent_watchdog(
     pid: u32,
+    #[cfg(target_os = "linux")] pidfd: Option<OwnedFd>,
     timeout_seconds: u64,
     cancel: Arc<AtomicBool>,
     timed_out: Arc<AtomicBool>,
@@ -664,6 +671,11 @@ fn spawn_parent_watchdog(
         }
 
         timed_out.store(true, Ordering::Release);
+        #[cfg(target_os = "linux")]
+        let _ = pidfd
+            .as_ref()
+            .map_or_else(|| kill_process(pid), kill_process_pidfd);
+        #[cfg(not(target_os = "linux"))]
         let _ = kill_process(pid);
     });
 }
@@ -704,6 +716,48 @@ fn kill_process(pid: u32) -> bool {
         let _ = pid;
         false
     }
+}
+
+#[cfg(target_os = "linux")]
+fn open_pidfd(pid: u32) -> Option<OwnedFd> {
+    if pid == 0 || pid > i32::MAX as u32 {
+        return None;
+    }
+
+    // SAFETY: `syscall` is invoked with the documented pidfd_open arguments.
+    let fd = unsafe { libc::syscall(libc::SYS_pidfd_open, pid as libc::pid_t, 0) };
+    if fd < 0 {
+        return None;
+    }
+
+    // SAFETY: the kernel returned a fresh owned file descriptor.
+    Some(unsafe { OwnedFd::from_raw_fd(fd as i32) })
+}
+
+#[cfg(target_os = "linux")]
+fn kill_process_pidfd(pidfd: &OwnedFd) -> bool {
+    // SAFETY: `pidfd_send_signal` operates on a valid pidfd and does not require
+    // additional invariants beyond passing null siginfo and zero flags.
+    let ret = unsafe {
+        libc::syscall(
+            libc::SYS_pidfd_send_signal,
+            pidfd.as_raw_fd(),
+            libc::SIGKILL,
+            std::ptr::null::<libc::siginfo_t>(),
+            0,
+        )
+    };
+    if ret != 0 {
+        let err = std::io::Error::last_os_error();
+        if err.raw_os_error() != Some(libc::ESRCH) {
+            eprintln!(
+                "[santh-sandbox] pidfd_send_signal({}, SIGKILL) failed: {err}",
+                pidfd.as_raw_fd()
+            );
+        }
+        return false;
+    }
+    true
 }
 
 #[cfg(target_os = "linux")]
