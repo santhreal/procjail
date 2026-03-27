@@ -2,25 +2,37 @@
 
 Run untrusted code in a sandbox. procjail picks the best containment strategy available on the system (bubblewrap > firejail > unshare > rlimits), strips secret environment variables, enforces timeouts, and reports resource usage.
 
-```rust
+Linux only. procjail relies on Linux process isolation primitives and sandbox launchers such as `bubblewrap`, `firejail`, and `unshare`.
+
+```rust,no_run
 use procjail::{SandboxConfig, SandboxedProcess};
-use std::path::Path;
+use std::{fs, path::Path};
 
 let config = SandboxConfig::builder()
-    .runtime("/usr/bin/node")
+    .runtime("sh")
     .max_memory_mb(256)
-    .max_cpu_seconds(30)
-    .timeout_seconds(60)
+    .timeout_seconds(5)
     .build();
 
-let mut proc = SandboxedProcess::spawn(
-    Path::new("harness.js"),
-    Path::new("/path/to/package"),
-    &config,
-).unwrap();
+let work_dir = std::env::temp_dir().join("procjail-readme-example");
+fs::create_dir_all(&work_dir)?;
 
-proc.send(r#"{"method":"eval","args":["1+1"]}"#).unwrap();
-let response = proc.recv().unwrap();
+let harness = work_dir.join("harness.sh");
+fs::write(
+    &harness,
+    "#!/bin/sh\nwhile IFS= read -r line; do printf '{\"echo\":%s}\\n' \"$line\"; done\n",
+)?;
+
+let mut proc = SandboxedProcess::spawn(
+    Path::new(&harness),
+    Path::new(&work_dir),
+    &config,
+)?;
+
+proc.send("42")?;
+let response = proc.recv()?;
+println!("{response:?}");
+# Ok::<(), procjail::ProcjailError>(())
 ```
 
 ## Containment strategies
