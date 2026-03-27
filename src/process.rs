@@ -2,9 +2,9 @@
 
 #[cfg(target_os = "linux")]
 use std::fs;
+use std::io::{BufRead, BufReader, Read, Write};
 #[cfg(target_os = "linux")]
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
-use std::io::{BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::process::Command;
 use std::process::{Child, ChildStdin, ChildStdout, Stdio};
@@ -338,11 +338,13 @@ impl SandboxedProcess {
         self.killed_by_timeout = self.watchdog_timed_out.load(Ordering::Acquire);
 
         let wall_time_secs = self.spawned_at.elapsed().as_secs_f64();
-        
+
         #[cfg(unix)]
         let exit_code = {
             use std::os::unix::process::ExitStatusExt;
-            status.code().unwrap_or_else(|| status.signal().map(|s| s + 128).unwrap_or(-1))
+            status
+                .code()
+                .unwrap_or_else(|| status.signal().map(|s| s + 128).unwrap_or(-1))
         };
         #[cfg(not(unix))]
         let exit_code = status.code().unwrap_or(-1);
@@ -434,7 +436,10 @@ pub(crate) fn build_command(
 
 fn validate_environment(config: &SandboxConfig) -> AnyResult<()> {
     for (key, value) in &config.env_set {
-        anyhow::ensure!(!key.is_empty(), "environment variable name must not be empty");
+        anyhow::ensure!(
+            !key.is_empty(),
+            "environment variable name must not be empty"
+        );
         anyhow::ensure!(
             !key.contains('=') && !key.contains('\0') && !key.chars().any(char::is_whitespace),
             "environment variable name contains invalid characters: {key:?}"
@@ -529,7 +534,11 @@ fn build_unshare_command(runtime: &Path, config: &SandboxConfig) -> Command {
     cmd
 }
 
-fn build_bwrap_command(runtime: &Path, work_dir: &Path, config: &SandboxConfig) -> AnyResult<Command> {
+fn build_bwrap_command(
+    runtime: &Path,
+    work_dir: &Path,
+    config: &SandboxConfig,
+) -> AnyResult<Command> {
     let mut cmd = Command::new("bwrap");
     cmd.args(["--ro-bind", "/", "/"]);
     cmd.args(["--dev", "/dev"]);
@@ -540,13 +549,19 @@ fn build_bwrap_command(runtime: &Path, work_dir: &Path, config: &SandboxConfig) 
     cmd.args(["--ro-bind", &wd, &wd]);
 
     for (host, container) in &config.readonly_mounts {
-        anyhow::ensure!(host.is_absolute(), "readonly_mount host path must be absolute");
+        anyhow::ensure!(
+            host.is_absolute(),
+            "readonly_mount host path must be absolute"
+        );
         let host = host.to_string_lossy();
         let container = container.to_string_lossy();
         cmd.args(["--ro-bind", &host, &container]);
     }
     for (host, container) in &config.writable_mounts {
-        anyhow::ensure!(host.is_absolute(), "writable_mount host path must be absolute");
+        anyhow::ensure!(
+            host.is_absolute(),
+            "writable_mount host path must be absolute"
+        );
         let host = host.to_string_lossy();
         let container = container.to_string_lossy();
         cmd.args(["--bind", &host, &container]);
@@ -561,7 +576,11 @@ fn build_bwrap_command(runtime: &Path, work_dir: &Path, config: &SandboxConfig) 
     Ok(cmd)
 }
 
-fn build_firejail_command(runtime: &Path, work_dir: &Path, config: &SandboxConfig) -> AnyResult<Command> {
+fn build_firejail_command(
+    runtime: &Path,
+    work_dir: &Path,
+    config: &SandboxConfig,
+) -> AnyResult<Command> {
     let mut cmd = Command::new("firejail");
     cmd.args(["--quiet", "--noprofile", "--noroot", "--nosound", "--no3d"]);
     cmd.args(["--nodvd", "--nonewprivs", "--seccomp"]);
@@ -579,12 +598,18 @@ fn build_firejail_command(runtime: &Path, work_dir: &Path, config: &SandboxConfi
     }
 
     for (host, _container) in &config.readonly_mounts {
-        anyhow::ensure!(host.is_absolute(), "readonly_mount host path must be absolute");
+        anyhow::ensure!(
+            host.is_absolute(),
+            "readonly_mount host path must be absolute"
+        );
         cmd.arg(format!("--whitelist={}", host.display()));
         cmd.arg(format!("--read-only={}", host.display()));
     }
     for (host, _container) in &config.writable_mounts {
-        anyhow::ensure!(host.is_absolute(), "writable_mount host path must be absolute");
+        anyhow::ensure!(
+            host.is_absolute(),
+            "writable_mount host path must be absolute"
+        );
         cmd.arg(format!("--whitelist={}", host.display()));
     }
 
@@ -611,14 +636,14 @@ fn which(name: &Path) -> AnyResult<std::path::PathBuf> {
         .arg(name_str.as_ref())
         .output()
         .context("failed to execute 'which' command")?;
-    
+
     if output.status.success() {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !path.is_empty() {
             return Ok(std::path::PathBuf::from(path));
         }
     }
-    
+
     Err(anyhow::anyhow!(
         "runtime '{}' not found in PATH. Fix: install the runtime or set `runtime_path` to an absolute executable path.",
         name_str

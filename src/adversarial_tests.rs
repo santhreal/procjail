@@ -93,9 +93,13 @@ mod tests {
 
         assert!(result.is_ok());
         let cmd = result.unwrap();
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
         assert!(
-            args.iter().any(|arg| arg == "/tmp/path with spaces/work dir"),
+            args.iter()
+                .any(|arg| arg == "/tmp/path with spaces/work dir"),
             "work dir with spaces should be preserved as a single argument"
         );
     }
@@ -144,7 +148,10 @@ mod tests {
         let result = SandboxedProcess::spawn(harness.path(), work.path(), &config);
         let mut proc = result.expect("process should spawn");
         std::thread::sleep(std::time::Duration::from_millis(100));
-        assert!(proc.is_alive(), "timeout=0 should leave the process running");
+        assert!(
+            proc.is_alive(),
+            "timeout=0 should leave the process running"
+        );
         assert!(!proc.killed_by_timeout, "watchdog must remain disabled");
         proc.kill();
     }
@@ -202,8 +209,14 @@ mod tests {
         let mut proc = SandboxedProcess::spawn(harness.path(), work.path(), &config)
             .expect("spawn should handle huge timeout values");
         std::thread::sleep(std::time::Duration::from_millis(100));
-        assert!(proc.is_alive(), "huge timeout should not overflow into immediate kill");
-        assert!(!proc.killed_by_timeout, "watchdog should not mark process as timed out");
+        assert!(
+            proc.is_alive(),
+            "huge timeout should not overflow into immediate kill"
+        );
+        assert!(
+            !proc.killed_by_timeout,
+            "watchdog should not mark process as timed out"
+        );
         proc.kill();
     }
 
@@ -281,9 +294,7 @@ mod tests {
         );
         match result {
             Err(error) => assert!(
-                error
-                    .to_string()
-                    .contains("harness_path must exist"),
+                error.to_string().contains("harness_path must exist"),
                 "unexpected error: {error}"
             ),
             Ok(_) => panic!("spawn should fail for a missing harness file"),
@@ -364,7 +375,10 @@ mod tests {
         );
 
         let cmd = result.expect("absolute mount paths should be accepted at command-build time");
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
         assert!(
             args.contains(&"/definitely/not/a/real/path_xyz123".to_string()),
             "readonly mount host path should be propagated to bubblewrap"
@@ -391,8 +405,14 @@ mod tests {
         );
 
         let cmd = result.unwrap();
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
-        assert!(args.contains(&"--timeout=00:00:00".to_string()), "zero timeout should format correctly");
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            args.contains(&"--timeout=00:00:00".to_string()),
+            "zero timeout should format correctly"
+        );
     }
 
     // =========================================================================
@@ -417,8 +437,14 @@ mod tests {
         );
 
         let cmd = result.unwrap();
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
-        assert!(args.contains(&"--rlimit-nofile=0".to_string()), "max_fds=0 must be in args");
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            args.contains(&"--rlimit-nofile=0".to_string()),
+            "max_fds=0 must be in args"
+        );
     }
 
     // =========================================================================
@@ -443,8 +469,14 @@ mod tests {
         );
 
         let cmd = result.unwrap();
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
-        assert!(args.contains(&"--rlimit-nproc=0".to_string()), "max_processes=0 must be in args");
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            args.contains(&"--rlimit-nproc=0".to_string()),
+            "max_processes=0 must be in args"
+        );
     }
 
     // =========================================================================
@@ -467,8 +499,14 @@ mod tests {
         );
 
         let cmd = result.unwrap();
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
-        assert!(!args.contains(&"--net".to_string()), "--net should not be present");
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            !args.contains(&"--net".to_string()),
+            "--net should not be present"
+        );
     }
 
     // =========================================================================
@@ -492,7 +530,10 @@ mod tests {
         );
 
         let cmd = result.unwrap();
-        let args: Vec<_> = cmd.get_args().map(|s| s.to_string_lossy().into_owned()).collect();
+        let args: Vec<_> = cmd
+            .get_args()
+            .map(|s| s.to_string_lossy().into_owned())
+            .collect();
         assert!(args.contains(&long_arg), "long arg should be preserved");
     }
 
@@ -518,8 +559,14 @@ mod tests {
         );
 
         let cmd = result.unwrap();
-        let envs: Vec<_> = cmd.get_envs().filter_map(|(k, _)| k.to_str().map(|s| s.to_string())).collect();
+        let envs: Vec<_> = cmd
+            .get_envs()
+            .filter_map(|(k, _)| k.to_str().map(|s| s.to_string()))
+            .collect();
         println!("ENVS: {:?}", envs);
-        assert!(!envs.contains(&"GITHUB_TOKEN".to_string()), "GITHUB_TOKEN must be stripped");
+        assert!(
+            !envs.contains(&"GITHUB_TOKEN".to_string()),
+            "GITHUB_TOKEN must be stripped"
+        );
     }
 }
