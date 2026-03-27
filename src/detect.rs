@@ -5,6 +5,9 @@ use std::process::{Command, Stdio};
 use crate::strategy::Strategy;
 
 /// How much containment is available on this host.
+///
+/// # Thread Safety
+/// `ContainmentLevel` is `Send` and `Sync`.
 #[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ContainmentLevel {
     /// Best strategy available.
@@ -19,6 +22,16 @@ pub struct ContainmentLevel {
     pub has_firejail: bool,
 }
 
+impl std::fmt::Display for ContainmentLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ContainmentLevel(best={}, unshare={}, bubblewrap={}, firejail={})",
+            self.best_strategy, self.has_unshare, self.has_bubblewrap, self.has_firejail
+        )
+    }
+}
+
 /// Probe the host and return what containment is available.
 ///
 /// This runs small test commands to verify each mechanism actually works
@@ -31,6 +44,7 @@ pub struct ContainmentLevel {
 /// let level = probe_capabilities();
 /// println!("best strategy: {}", level.best_strategy);
 /// ```
+#[must_use]
 pub fn probe_capabilities() -> ContainmentLevel {
     let has_unshare = check_unshare().unwrap_or(false);
     let has_bubblewrap = check_bubblewrap().unwrap_or(false);
@@ -65,6 +79,7 @@ pub fn probe_capabilities() -> ContainmentLevel {
 /// let strategy = available_strategy();
 /// assert!(!strategy.to_string().is_empty());
 /// ```
+#[must_use]
 pub fn available_strategy() -> Strategy {
     probe_capabilities().best_strategy
 }

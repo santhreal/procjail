@@ -18,7 +18,11 @@ use serde::{Deserialize, Serialize};
 /// **Firejail** adds seccomp and rlimits. **Unshare** provides PID/NET isolation
 /// but filesystem access is only partially restricted (mount changes don't leak,
 /// but existing mounts are still visible).
+///
+/// # Thread Safety
+/// `Strategy` is `Send` and `Sync`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum Strategy {
     /// Linux namespaces via `unshare` (PID + NET + mount namespace).
     /// Mount namespace prevents mount changes from leaking but does NOT
@@ -45,6 +49,7 @@ impl Strategy {
     ///
     /// assert_eq!(Strategy::Bubblewrap.name(), "bubblewrap");
     /// ```
+    #[must_use]
     pub fn name(self) -> &'static str {
         match self {
             Self::Unshare => "unshare",
@@ -63,6 +68,7 @@ impl Strategy {
     ///
     /// assert!(Strategy::Unshare.has_pid_isolation());
     /// ```
+    #[must_use]
     pub fn has_pid_isolation(self) -> bool {
         matches!(self, Self::Unshare | Self::Bubblewrap | Self::Firejail)
     }
@@ -75,6 +81,7 @@ impl Strategy {
     ///
     /// assert!(Strategy::Firejail.has_network_isolation());
     /// ```
+    #[must_use]
     pub fn has_network_isolation(self) -> bool {
         matches!(self, Self::Unshare | Self::Bubblewrap | Self::Firejail)
     }
@@ -92,6 +99,7 @@ impl Strategy {
     /// assert!(Strategy::Bubblewrap.has_fs_isolation());
     /// assert!(!Strategy::Unshare.has_fs_isolation());
     /// ```
+    #[must_use]
     pub fn has_fs_isolation(self) -> bool {
         matches!(self, Self::Bubblewrap | Self::Firejail)
     }
@@ -105,6 +113,7 @@ impl Strategy {
     ///
     /// assert!(Strategy::Unshare.has_mount_namespace());
     /// ```
+    #[must_use]
     pub fn has_mount_namespace(self) -> bool {
         matches!(self, Self::Unshare | Self::Bubblewrap | Self::Firejail)
     }

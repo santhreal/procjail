@@ -25,6 +25,9 @@ use serde::{Deserialize, Serialize};
 const MAX_ENV_VALUE_BYTES: usize = 32 * 1024;
 
 /// Usage metrics captured when the sandboxed process exits.
+///
+/// # Thread Safety
+/// `ResourceUsage` is `Send` and `Sync`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceUsage {
     /// Peak virtual memory (kilobytes in `/proc/<pid>/status` converted to bytes).
@@ -37,10 +40,24 @@ pub struct ResourceUsage {
     pub exit_code: i32,
 }
 
+impl std::fmt::Display for ResourceUsage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "exit_code={}, wall_time_secs={:.3}, peak_memory_bytes={:?}, cpu_time_secs={:?}",
+            self.exit_code, self.wall_time_secs, self.peak_memory_bytes, self.cpu_time_secs
+        )
+    }
+}
+
 /// A sandboxed child process running untrusted code.
 ///
 /// Communication is via newline-delimited JSON over stdin/stdout pipes.
 /// The process runs in the best available containment mechanism.
+///
+/// # Thread Safety
+/// `SandboxedProcess` is `Send` but not `Sync`; it owns mutable process handles
+/// and is intended to be controlled by a single owner at a time.
 #[derive(Debug)]
 pub struct SandboxedProcess {
     child: Child,
@@ -83,6 +100,7 @@ impl SandboxedProcess {
     /// )?;
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
+    #[must_use]
     pub fn spawn(harness_path: &Path, work_dir: &Path, config: &SandboxConfig) -> Result<Self> {
         // Validate work_dir is a real directory (not /dev/null, not a file).
         if !work_dir.is_dir() {
@@ -257,6 +275,7 @@ impl SandboxedProcess {
     /// let _response = proc.send_recv(r#"{"kind":"ping"}"#)?;
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
+    #[must_use]
     pub fn send_recv(&mut self, line: &str) -> Result<Option<String>> {
         self.send(line)?;
         self.recv()
@@ -292,6 +311,7 @@ impl SandboxedProcess {
     /// let _alive = proc.is_alive();
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
+    #[must_use]
     pub fn is_alive(&mut self) -> bool {
         self.child.try_wait().ok().flatten().is_none()
     }
@@ -307,6 +327,7 @@ impl SandboxedProcess {
     /// let _exit_code = proc.wait()?;
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
+    #[must_use]
     pub fn wait(&mut self) -> Result<i32> {
         Ok(self.wait_with_usage()?.exit_code)
     }
@@ -323,6 +344,7 @@ impl SandboxedProcess {
     /// assert!(usage.wall_time_secs >= 0.0);
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
+    #[must_use]
     pub fn wait_with_usage(&mut self) -> Result<ResourceUsage> {
         // Cancel watchdog BEFORE reaping to prevent PID reuse race:
         // if we reap first, the OS can reassign the PID to a new process,
@@ -368,8 +390,15 @@ impl SandboxedProcess {
     /// let _strategy: Strategy = proc.strategy();
     /// # Ok::<(), anyhow::Error>(())
     /// ```
+    #[must_use]
     pub fn strategy(&self) -> Strategy {
         self.strategy
+    }
+}
+
+impl std::fmt::Display for SandboxedProcess {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SandboxedProcess(strategy={})", self.strategy)
     }
 }
 

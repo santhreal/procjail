@@ -80,6 +80,10 @@ pub use process::{ResourceUsage, SandboxedProcess};
 pub use strategy::Strategy;
 
 /// Trait for communicating with a sandboxed process.
+///
+/// # Thread Safety
+/// This trait does not require `Send` or `Sync`. Thread-safety depends on the
+/// concrete implementing type.
 pub trait SandboxedIO {
     /// Send a line to the process.
     fn send(&mut self, line: &str) -> Result<()>;
@@ -105,6 +109,7 @@ pub trait SandboxedIO {
 /// )?;
 /// # Ok::<(), procjail::ProcjailError>(())
 /// ```
+#[must_use]
 pub fn quick_spawn(
     runtime: &str,
     harness: impl AsRef<std::path::Path>,

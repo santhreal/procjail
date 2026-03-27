@@ -4,7 +4,11 @@ use thiserror::Error;
 pub type Result<T> = std::result::Result<T, ProcjailError>;
 
 /// Public error type for procjail APIs.
+///
+/// # Thread Safety
+/// `ProcjailError` is `Send` and `Sync`.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ProcjailError {
     /// I/O failure while interacting with the sandbox or reading config.
     #[error("{0}. Fix: verify the runtime binary, harness path, work directory, and any config file paths exist and are readable on this host.")]

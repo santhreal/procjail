@@ -50,6 +50,9 @@ pub const DEFAULT_SECRET_ENV_VARS: &[&str] = &[
 /// Configuration for sandbox behavior.
 ///
 /// Use [`SandboxConfigBuilder`] for ergonomic construction.
+///
+/// # Thread Safety
+/// `SandboxConfig` is `Send` and `Sync`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SandboxConfig {
@@ -133,6 +136,7 @@ impl SandboxConfig {
     /// let config = SandboxConfig::load(&path).unwrap();
     /// assert_eq!(config.runtime_path.to_string_lossy(), "python3");
     /// ```
+    #[must_use]
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let content = std::fs::read_to_string(path)?;
         let config = toml::from_str(&content)?;
@@ -163,6 +167,7 @@ impl SandboxConfig {
     /// let stripped = config.stripped_env_vars();
     /// assert!(stripped.contains("OPENAI_API_KEY"));
     /// ```
+    #[must_use]
     pub fn stripped_env_vars(&self) -> HashSet<&str> {
         let mut stripped: HashSet<&str> = self.env_strip.iter().map(String::as_str).collect();
         if self.env_strip_secrets {
@@ -174,10 +179,33 @@ impl SandboxConfig {
     }
 }
 
+impl std::fmt::Display for SandboxConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "SandboxConfig(runtime={}, timeout_seconds={}, strategy={})",
+            self.runtime_path.display(),
+            self.timeout_seconds,
+            self.force_strategy
+                .map(|strategy| strategy.to_string())
+                .unwrap_or_else(|| "auto".to_string())
+        )
+    }
+}
+
 /// Builder for [`SandboxConfig`].
+///
+/// # Thread Safety
+/// `SandboxConfigBuilder` is `Send` and `Sync`.
 #[derive(Debug, Clone)]
 pub struct SandboxConfigBuilder {
     config: SandboxConfig,
+}
+
+impl std::fmt::Display for SandboxConfigBuilder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SandboxConfigBuilder({})", self.config)
+    }
 }
 
 impl SandboxConfigBuilder {
@@ -358,8 +386,12 @@ impl Default for SandboxConfigBuilder {
 }
 
 /// Environment inheritance strategy for the sandbox process.
+///
+/// # Thread Safety
+/// `EnvMode` is `Send` and `Sync`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[non_exhaustive]
 pub enum EnvMode {
     /// Keep current behavior: inherit host environment and strip secret values.
     StripSecrets,
