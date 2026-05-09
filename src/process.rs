@@ -100,7 +100,6 @@ impl SandboxedProcess {
     /// )?;
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
-    #[must_use]
     pub fn spawn(harness_path: &Path, work_dir: &Path, config: &SandboxConfig) -> Result<Self> {
         // Validate work_dir is a real directory (not /dev/null, not a file).
         if !work_dir.is_dir() {
@@ -275,7 +274,6 @@ impl SandboxedProcess {
     /// let _response = proc.send_recv(r#"{"kind":"ping"}"#)?;
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
-    #[must_use]
     pub fn send_recv(&mut self, line: &str) -> Result<Option<String>> {
         self.send(line)?;
         self.recv()
@@ -327,7 +325,6 @@ impl SandboxedProcess {
     /// let _exit_code = proc.wait()?;
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
-    #[must_use]
     pub fn wait(&mut self) -> Result<i32> {
         Ok(self.wait_with_usage()?.exit_code)
     }
@@ -344,7 +341,6 @@ impl SandboxedProcess {
     /// assert!(usage.wall_time_secs >= 0.0);
     /// # Ok::<(), procjail::ProcjailError>(())
     /// ```
-    #[must_use]
     pub fn wait_with_usage(&mut self) -> Result<ResourceUsage> {
         // Cancel watchdog BEFORE reaping to prevent PID reuse race:
         // if we reap first, the OS can reassign the PID to a new process,

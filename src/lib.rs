@@ -109,7 +109,6 @@ pub trait SandboxedIO {
 /// )?;
 /// # Ok::<(), procjail::ProcjailError>(())
 /// ```
-#[must_use]
 pub fn quick_spawn(
     runtime: &str,
     harness: impl AsRef<std::path::Path>,

@@ -136,7 +136,6 @@ impl SandboxConfig {
     /// let config = SandboxConfig::load(&path).unwrap();
     /// assert_eq!(config.runtime_path.to_string_lossy(), "python3");
     /// ```
-    #[must_use]
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let content = std::fs::read_to_string(path)?;
         let config = toml::from_str(&content)?;
