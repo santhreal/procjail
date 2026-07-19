@@ -2,7 +2,7 @@
 
 use std::path::Path;
 
-use procjail::{SandboxConfig, SandboxedProcess, Strategy};
+use procjail::{probe_capabilities, SandboxConfig, SandboxedProcess, Strategy};
 
 fn create_sh_harness(dir: &Path, script: &str) -> std::path::PathBuf {
     let harness = dir.join("harness.sh");
@@ -27,7 +27,17 @@ fn all_strategies_can_echo() {
         Strategy::Firejail,
     ];
 
+    let caps = probe_capabilities();
+    let probed_ok = |s: Strategy| match s {
+        Strategy::Unshare => caps.has_unshare,
+        Strategy::Bubblewrap => caps.has_bubblewrap,
+        Strategy::Firejail => caps.has_firejail,
+        _ => true, // None and RlimitsOnly always work
+    };
     for strategy in strategies {
+        if !probed_ok(strategy) {
+            continue; // host blocks this strategy (e.g. AppArmor userns restriction)
+        }
         let work_dir = tempfile::tempdir().unwrap();
         let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho hello\n");
 
@@ -86,15 +96,11 @@ fn bwrap_readonly_mount_is_readonly() {
         )
         .build();
 
-    let mut proc = match SandboxedProcess::spawn(&harness, work_dir.path(), &config) {
-        Ok(p) => p,
-        Err(e) => {
-            if e.to_string().contains("bwrap not available") {
-                return;
-            }
-            panic!("spawn failed: {e}");
-        }
-    };
+    if !probe_capabilities().has_bubblewrap {
+        return; // host blocks bwrap (e.g. AppArmor userns restriction)
+    }
+    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config)
+        .unwrap_or_else(|e| panic!("spawn failed on a bwrap-capable host: {e}"));
 
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(
@@ -131,15 +137,11 @@ fn bwrap_writable_mount_is_writable() {
         )
         .build();
 
-    let mut proc = match SandboxedProcess::spawn(&harness, work_dir.path(), &config) {
-        Ok(p) => p,
-        Err(e) => {
-            if e.to_string().contains("bwrap not available") {
-                return;
-            }
-            panic!("spawn failed: {e}");
-        }
-    };
+    if !probe_capabilities().has_bubblewrap {
+        return; // host blocks bwrap (e.g. AppArmor userns restriction)
+    }
+    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config)
+        .unwrap_or_else(|e| panic!("spawn failed on a bwrap-capable host: {e}"));
 
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(

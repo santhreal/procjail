@@ -155,8 +155,15 @@ fn check_bubblewrap() -> std::io::Result<bool> {
     // tmpfs root, so bind the minimal system dirs; `--ro-bind-try` skips any
     // that do not exist on this host (merged-/usr, no /lib64, etc.) instead of
     // failing the probe and false-reporting bwrap as unavailable.
+    // Include the namespace flags the real sandbox always sets
+    // (build_bwrap_command: --unshare-net when localhost is disallowed, and
+    // --unshare-pid). Nested-container hosts (CI runners) frequently allow a
+    // plain tmpfs+bind bwrap but deny new net/pid namespaces; probing without
+    // them false-reports bwrap as usable and the real spawn then fails.
     Command::new("bwrap")
         .args([
+            "--unshare-net",
+            "--unshare-pid",
             "--tmpfs",
             "/",
             "--proc",
