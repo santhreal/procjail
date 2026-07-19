@@ -4,20 +4,55 @@ name = "procjail"
 version = "0.2.0"
 edition = "2021"
 rust-version = "1.85"
-license = "MIT"
-authors = ["Corum Collective LLC <engineering@corumcollective.com>"]
-repository = "https://github.com/santhsecurity/procjail"
-description = "Process sandbox for running untrusted code — Linux namespaces, seccomp, firejail, bubblewrap, rlimits"
+license = "MIT OR Apache-2.0"
+authors = ["Santh Project <contact@santh.dev>"]
+repository = "https://github.com/santhreal/procjail"
+homepage = "https://santh.dev"
+description = "Process sandbox for running untrusted code  -  Linux namespaces, seccomp, firejail, bubblewrap, rlimits"
 readme = "README.md"
 keywords = ["sandbox", "security", "isolation", "namespace", "seccomp"]
 categories = ["os::unix-apis"]
 
 [dependencies]
-anyhow = "1"
-thiserror = "2"
-serde = { version = "1", features = ["derive"] }
-libc = "0.2"
-toml = "1.1.0"
+anyhow = "1.0.102"
+thiserror = "2.0.18"
+serde = { version = "1.0.228", features = ["derive"] }
+libc = "0.2.186"
+toml = "0.8.23"
+seccompiler = { version = "0.5.0", features = ["json"] }
 
 [dev-dependencies]
-tempfile = "3"
+proptest = "1.9.0"
+serde_json = "1"
+tempfile = "3.27.0"
+
+# Mod-tree test suites. These subdirectory targets are NOT picked up by cargo
+# auto-discovery (which only compiles top-level tests/*.rs), so each is wired
+# explicitly. Without these entries the entire mod-tree below is dead coverage.
+[[test]]
+name = "unit"
+path = "tests/unit/mod.rs"
+
+[[test]]
+name = "adversarial"
+path = "tests/adversarial/mod.rs"
+
+[[test]]
+name = "concurrent"
+path = "tests/concurrent/mod.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"
+
+[[test]]
+name = "property"
+path = "tests/property/mod.rs"
+
+[[test]]
+name = "regression"
+path = "tests/regression/mod.rs"
+
+[[test]]
+name = "gap"
+path = "tests/gap/mod.rs"

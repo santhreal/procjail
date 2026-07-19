@@ -9,6 +9,6 @@ fn main() {
     let secrets = config.stripped_env_vars();
     println!("secrets size: {}", secrets.len());
     for s in secrets {
-        println!("secret: {}", s);
+        println!("secret: {s}");
     }
 }

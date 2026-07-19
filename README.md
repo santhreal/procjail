@@ -1,8 +1,14 @@
 # procjail
 
+Part of [Santh](https://santh.dev) - open source Rust security and infrastructure tooling. Follow [@SanthProject](https://x.com/SanthProject) on X.
+
 Run untrusted code in a sandbox. procjail picks the best containment strategy available on the system (bubblewrap > firejail > unshare > rlimits), strips secret environment variables, enforces timeouts, and reports resource usage.
 
 Linux only. procjail relies on Linux process isolation primitives and sandbox launchers such as `bubblewrap`, `firejail`, and `unshare`.
+
+```bash
+cargo add procjail
+```
 
 ```rust,no_run
 use procjail::{SandboxConfig, SandboxedProcess};
@@ -65,7 +71,7 @@ Pull requests are welcome. There is no such thing as a perfect crate. If you fin
 
 ## License
 
-MIT. Copyright 2026 CORUM COLLECTIVE LLC.
+MIT. Copyright 2026 CORUM COLLECTIVE LLC. Contact: contact@santh.dev
 
 [![crates.io](https://img.shields.io/crates/v/procjail.svg)](https://crates.io/crates/procjail)
 [![docs.rs](https://docs.rs/procjail/badge.svg)](https://docs.rs/procjail)

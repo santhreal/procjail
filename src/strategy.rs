@@ -1,4 +1,4 @@
-//! Containment strategies — how we isolate the process.
+//! Containment strategies  -  how we isolate the process.
 
 use serde::{Deserialize, Serialize};
 
@@ -28,10 +28,10 @@ pub enum Strategy {
     /// Mount namespace prevents mount changes from leaking but does NOT
     /// hide existing filesystem content. Prefer Bubblewrap for full FS isolation.
     Unshare,
-    /// Bubblewrap (`bwrap`) — rootless container with full filesystem isolation.
+    /// Bubblewrap (`bwrap`)  -  rootless container with full filesystem isolation.
     /// Read-only root, explicit bind mounts. **Recommended for production.**
     Bubblewrap,
-    /// Firejail — seccomp + namespaces + rlimits + private filesystem.
+    /// Firejail  -  seccomp + namespaces + rlimits + private filesystem.
     Firejail,
     /// Basic resource limits via env vars (harness must enforce).
     /// **No namespace isolation.** Only use as last resort.

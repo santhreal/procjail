@@ -1,3 +1,18 @@
+#![cfg_attr(
+    not(test),
+    deny(
+        clippy::unwrap_used,
+        clippy::expect_used,
+        clippy::todo,
+        clippy::unimplemented,
+        clippy::panic
+    )
+)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::must_use_candidate,
+    clippy::missing_errors_doc,
+)]
 //! # procjail
 //!
 //! Process sandbox for running untrusted code in real runtimes.
@@ -9,10 +24,10 @@
 //!
 //! # Containment Strategies (ordered by preference)
 //!
-//! 1. **unshare** — Linux namespaces (PID, network, mount, user). No root needed.
-//! 2. **bubblewrap (bwrap)** — Lightweight container (Flatpak uses this). Rootless.
-//! 3. **firejail** — Feature-rich sandbox. Needs installation.
-//! 4. **rlimits** — Basic resource limits only. Always available. Least secure.
+//! 1. **unshare**  -  Linux namespaces (PID, network, mount, user). No root needed.
+//! 2. **bubblewrap (bwrap)**  -  Lightweight container (Flatpak uses this). Rootless.
+//! 3. **firejail**  -  Feature-rich sandbox. Needs installation.
+//! 4. **rlimits**  -  Basic resource limits only. Always available. Least secure.
 //!
 //! The sandbox auto-selects the best available strategy, or you can force one.
 //!
@@ -63,20 +78,24 @@
 
 // Note: unsafe code is used in process.rs for libc calls
 #![warn(missing_docs)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::useless_conversion)]
 
+mod cgroups;
 mod config;
+
 mod detect;
 mod error;
 mod process;
-mod strategy;
+mod provider;
+pub mod strategy;
 
-#[cfg(test)]
-mod adversarial_tests;
-
-pub use config::{EnvMode, SandboxConfig, SandboxConfigBuilder};
+pub use config::{EnvMode, SandboxConfig, SandboxConfigBuilder, DEFAULT_SECRET_ENV_VARS};
 pub use detect::{available_strategy, probe_capabilities, ContainmentLevel};
 pub use error::{ProcjailError, Result};
 pub use process::{ResourceUsage, SandboxedProcess};
+pub use provider::SandboxProvider;
 pub use strategy::Strategy;
 
 /// Trait for communicating with a sandboxed process.
@@ -86,8 +105,12 @@ pub use strategy::Strategy;
 /// concrete implementing type.
 pub trait SandboxedIO {
     /// Send a line to the process.
+    /// # Errors
+    /// Returns an error if writing to the sandbox fails.
     fn send(&mut self, line: &str) -> Result<()>;
     /// Receive a line from the process. None = EOF.
+    /// # Errors
+    /// Returns an error if reading from the sandbox fails.
     fn recv(&mut self) -> Result<Option<String>>;
     /// Kill the process.
     fn kill(&mut self);
@@ -109,6 +132,8 @@ pub trait SandboxedIO {
 /// )?;
 /// # Ok::<(), procjail::ProcjailError>(())
 /// ```
+/// # Errors
+/// Returns an error if the sandbox cannot be spawned.
 pub fn quick_spawn(
     runtime: &str,
     harness: impl AsRef<std::path::Path>,
@@ -120,3 +145,7 @@ pub fn quick_spawn(
         .build();
     process::SandboxedProcess::spawn(harness.as_ref(), work_dir.as_ref(), &config)
 }
+pub mod seccomp;
+
+#[cfg(test)]
+mod audit_tests;
