@@ -108,6 +108,9 @@ fn parallel_mixed_strategies() {
         let w = dir.path().to_path_buf();
         let s = *strategy;
         handles.push(std::thread::spawn(move || {
+            // Keep the TempDir guard alive for the thread's lifetime: dropping
+            // it in the loop deletes harness.sh before the spawn races to read it.
+            let _dir = dir;
             let config = SandboxConfig::builder()
                 .runtime("sh")
                 .timeout_seconds(5)
@@ -143,12 +146,17 @@ fn parallel_io_on_separate_processes() {
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(
         work_dir.path(),
-        "#!/bin/sh\nwhile read line; do echo \"$line\"; done\n",
+        // Read exactly 10 lines then exit 0: an infinite `while read` loop
+        // never sees EOF (procjail holds stdin open) and the watchdog would
+        // SIGKILL it, surfacing as exit_code 137 instead of 0.
+        "#!/bin/sh\ni=0\nwhile [ $i -lt 10 ]; do read line; echo \"$line\"; i=$((i+1)); done\n",
     );
 
     let config = SandboxConfig::builder()
         .runtime("sh")
-        .timeout_seconds(5)
+        // 16 concurrent echo loops can exceed a tight budget on a loaded
+        // runner; this test asserts IO correctness, not timeout behavior.
+        .timeout_seconds(60)
         .strategy(Strategy::None)
         .build();
 
