@@ -138,236 +138,235 @@ fn build_filter() -> Result<BpfProgram> {
 
     #[cfg(target_arch = "x86_64")]
     {
-    let target_arch = detect_arch()?;
-    let mut rules = BTreeMap::new();
+        let target_arch = detect_arch()?;
+        let mut rules = BTreeMap::new();
 
-    // === ALLOWED SYSCALLS ===
-    // These syscalls are permitted without argument checks
+        // === ALLOWED SYSCALLS ===
+        // These syscalls are permitted without argument checks
 
-    // Basic I/O
-    allow_syscall(&mut rules, libc::SYS_read);
-    allow_syscall(&mut rules, libc::SYS_write);
-    // Positioned I/O: the offset-carrying variants of read/write. Shells and
-    // dynamic loaders read script/library files via pread64; without it a bare
-    // `sh <script>` gets EPERM reading the script and exits 127. Same capability
-    // as the already-allowed read/write, just with an explicit file offset.
-    allow_syscall(&mut rules, libc::SYS_pread64);
-    allow_syscall(&mut rules, libc::SYS_pwrite64);
-    allow_syscall(&mut rules, libc::SYS_close);
+        // Basic I/O
+        allow_syscall(&mut rules, libc::SYS_read);
+        allow_syscall(&mut rules, libc::SYS_write);
+        // Positioned I/O: the offset-carrying variants of read/write. Shells and
+        // dynamic loaders read script/library files via pread64; without it a bare
+        // `sh <script>` gets EPERM reading the script and exits 127. Same capability
+        // as the already-allowed read/write, just with an explicit file offset.
+        allow_syscall(&mut rules, libc::SYS_pread64);
+        allow_syscall(&mut rules, libc::SYS_pwrite64);
+        allow_syscall(&mut rules, libc::SYS_close);
 
-    // Memory management
-    allow_syscall(&mut rules, libc::SYS_mmap);
-    allow_syscall(&mut rules, libc::SYS_mprotect);
-    allow_syscall(&mut rules, libc::SYS_munmap);
-    allow_syscall(&mut rules, libc::SYS_brk);
+        // Memory management
+        allow_syscall(&mut rules, libc::SYS_mmap);
+        allow_syscall(&mut rules, libc::SYS_mprotect);
+        allow_syscall(&mut rules, libc::SYS_munmap);
+        allow_syscall(&mut rules, libc::SYS_brk);
 
-    // Signal handling
-    allow_syscall(&mut rules, libc::SYS_rt_sigaction);
-    allow_syscall(&mut rules, libc::SYS_rt_sigprocmask);
-    allow_syscall(&mut rules, libc::SYS_rt_sigreturn);
+        // Signal handling
+        allow_syscall(&mut rules, libc::SYS_rt_sigaction);
+        allow_syscall(&mut rules, libc::SYS_rt_sigprocmask);
+        allow_syscall(&mut rules, libc::SYS_rt_sigreturn);
 
-    // File descriptor operations
-    allow_syscall(&mut rules, libc::SYS_pipe);
-    allow_syscall(&mut rules, libc::SYS_pipe2);
-    allow_syscall(&mut rules, libc::SYS_dup);
-    allow_syscall(&mut rules, libc::SYS_dup2);
-    allow_syscall(&mut rules, libc::SYS_dup3);
-    // fcntl: the Rust std library and most programs use it for FD_CLOEXEC,
-    // O_NONBLOCK, F_DUPFD_CLOEXEC (File::try_clone), and advisory locks.
-    // Without it the default Errno(EPERM) action makes those operations fail.
-    allow_syscall(&mut rules, libc::SYS_fcntl);
+        // File descriptor operations
+        allow_syscall(&mut rules, libc::SYS_pipe);
+        allow_syscall(&mut rules, libc::SYS_pipe2);
+        allow_syscall(&mut rules, libc::SYS_dup);
+        allow_syscall(&mut rules, libc::SYS_dup2);
+        allow_syscall(&mut rules, libc::SYS_dup3);
+        // fcntl: the Rust std library and most programs use it for FD_CLOEXEC,
+        // O_NONBLOCK, F_DUPFD_CLOEXEC (File::try_clone), and advisory locks.
+        // Without it the default Errno(EPERM) action makes those operations fail.
+        allow_syscall(&mut rules, libc::SYS_fcntl);
 
-    // ioctl - needed for terminals and some file operations
-    allow_syscall(&mut rules, libc::SYS_ioctl);
+        // ioctl - needed for terminals and some file operations
+        allow_syscall(&mut rules, libc::SYS_ioctl);
 
-    // File access check
-    allow_syscall(&mut rules, libc::SYS_access);
-    allow_syscall(&mut rules, libc::SYS_faccessat);
-    allow_syscall(&mut rules, libc::SYS_faccessat2);
+        // File access check
+        allow_syscall(&mut rules, libc::SYS_access);
+        allow_syscall(&mut rules, libc::SYS_faccessat);
+        allow_syscall(&mut rules, libc::SYS_faccessat2);
 
-    // Process info
-    allow_syscall(&mut rules, libc::SYS_getpid);
-    allow_syscall(&mut rules, libc::SYS_getppid);
-    allow_syscall(&mut rules, libc::SYS_getuid);
-    allow_syscall(&mut rules, libc::SYS_geteuid);
-    allow_syscall(&mut rules, libc::SYS_getgid);
-    allow_syscall(&mut rules, libc::SYS_getegid);
+        // Process info
+        allow_syscall(&mut rules, libc::SYS_getpid);
+        allow_syscall(&mut rules, libc::SYS_getppid);
+        allow_syscall(&mut rules, libc::SYS_getuid);
+        allow_syscall(&mut rules, libc::SYS_geteuid);
+        allow_syscall(&mut rules, libc::SYS_getgid);
+        allow_syscall(&mut rules, libc::SYS_getegid);
 
-    // Process control
-    allow_syscall(&mut rules, libc::SYS_execve);
-    allow_syscall(&mut rules, libc::SYS_execveat);
-    allow_syscall(&mut rules, libc::SYS_fork);
-    allow_syscall(&mut rules, libc::SYS_vfork);
-    allow_syscall(&mut rules, libc::SYS_wait4);
-    allow_syscall(&mut rules, libc::SYS_exit);
-    allow_syscall(&mut rules, libc::SYS_exit_group);
+        // Process control
+        allow_syscall(&mut rules, libc::SYS_execve);
+        allow_syscall(&mut rules, libc::SYS_execveat);
+        allow_syscall(&mut rules, libc::SYS_fork);
+        allow_syscall(&mut rules, libc::SYS_vfork);
+        allow_syscall(&mut rules, libc::SYS_wait4);
+        allow_syscall(&mut rules, libc::SYS_exit);
+        allow_syscall(&mut rules, libc::SYS_exit_group);
 
-    // Threading - allow clone but only for threads (CLONE_VM flag)
-    // We need to be careful here: clone is used for both processes and threads
-    // Allow it without restriction since the filter is applied after process setup
-    allow_syscall(&mut rules, libc::SYS_clone);
-    allow_syscall(&mut rules, libc::SYS_clone3);
-    allow_syscall(&mut rules, libc::SYS_futex);
-    allow_syscall(&mut rules, libc::SYS_sigaltstack);
-    allow_syscall(&mut rules, libc::SYS_sched_getaffinity);
-    allow_syscall(&mut rules, libc::SYS_set_robust_list);
-    allow_syscall(&mut rules, libc::SYS_get_robust_list);
-    // glibc pthread creation on recent kernels
-    allow_syscall(&mut rules, libc::SYS_rseq);
+        // Threading - allow clone but only for threads (CLONE_VM flag)
+        // We need to be careful here: clone is used for both processes and threads
+        // Allow it without restriction since the filter is applied after process setup
+        allow_syscall(&mut rules, libc::SYS_clone);
+        allow_syscall(&mut rules, libc::SYS_clone3);
+        allow_syscall(&mut rules, libc::SYS_futex);
+        allow_syscall(&mut rules, libc::SYS_sigaltstack);
+        allow_syscall(&mut rules, libc::SYS_sched_getaffinity);
+        allow_syscall(&mut rules, libc::SYS_set_robust_list);
+        allow_syscall(&mut rules, libc::SYS_get_robust_list);
+        // glibc pthread creation on recent kernels
+        allow_syscall(&mut rules, libc::SYS_rseq);
 
-    // Time
-    allow_syscall(&mut rules, libc::SYS_clock_gettime);
-    allow_syscall(&mut rules, libc::SYS_gettimeofday);
+        // Time
+        allow_syscall(&mut rules, libc::SYS_clock_gettime);
+        allow_syscall(&mut rules, libc::SYS_gettimeofday);
 
-    // Random
-    allow_syscall(&mut rules, libc::SYS_getrandom);
+        // Random
+        allow_syscall(&mut rules, libc::SYS_getrandom);
 
-    // Signal sending (self-only is enforced by kernel with NO_NEW_PRIVS)
-    allow_syscall(&mut rules, libc::SYS_kill);
-    allow_syscall(&mut rules, libc::SYS_tkill);
-    allow_syscall(&mut rules, libc::SYS_tgkill);
+        // Signal sending (self-only is enforced by kernel with NO_NEW_PRIVS)
+        allow_syscall(&mut rules, libc::SYS_kill);
+        allow_syscall(&mut rules, libc::SYS_tkill);
+        allow_syscall(&mut rules, libc::SYS_tgkill);
 
-    // SYS_prctl is intentionally absent. Blanket allowance exposes
-    // PR_SET_SECCOMP, PR_CAP_AMBIENT, and other privilege-escalation paths.
+        // SYS_prctl is intentionally absent. Blanket allowance exposes
+        // PR_SET_SECCOMP, PR_CAP_AMBIENT, and other privilege-escalation paths.
 
-    // Architecture-specific syscalls
-    allow_syscall(&mut rules, libc::SYS_arch_prctl);
+        // Architecture-specific syscalls
+        allow_syscall(&mut rules, libc::SYS_arch_prctl);
 
-    // Eventfd
-    allow_syscall(&mut rules, libc::SYS_eventfd);
-    allow_syscall(&mut rules, libc::SYS_eventfd2);
+        // Eventfd
+        allow_syscall(&mut rules, libc::SYS_eventfd);
+        allow_syscall(&mut rules, libc::SYS_eventfd2);
 
-    // Signalfd
-    allow_syscall(&mut rules, libc::SYS_signalfd);
-    allow_syscall(&mut rules, libc::SYS_signalfd4);
+        // Signalfd
+        allow_syscall(&mut rules, libc::SYS_signalfd);
+        allow_syscall(&mut rules, libc::SYS_signalfd4);
 
-    // Timerfd
-    allow_syscall(&mut rules, libc::SYS_timerfd_create);
-    allow_syscall(&mut rules, libc::SYS_timerfd_settime);
-    allow_syscall(&mut rules, libc::SYS_timerfd_gettime);
+        // Timerfd
+        allow_syscall(&mut rules, libc::SYS_timerfd_create);
+        allow_syscall(&mut rules, libc::SYS_timerfd_settime);
+        allow_syscall(&mut rules, libc::SYS_timerfd_gettime);
 
-    // Epoll
-    allow_syscall(&mut rules, libc::SYS_epoll_create);
-    allow_syscall(&mut rules, libc::SYS_epoll_create1);
-    allow_syscall(&mut rules, libc::SYS_epoll_ctl);
-    allow_syscall(&mut rules, libc::SYS_epoll_wait);
-    allow_syscall(&mut rules, libc::SYS_epoll_pwait);
-    allow_syscall(&mut rules, libc::SYS_epoll_pwait2);
+        // Epoll
+        allow_syscall(&mut rules, libc::SYS_epoll_create);
+        allow_syscall(&mut rules, libc::SYS_epoll_create1);
+        allow_syscall(&mut rules, libc::SYS_epoll_ctl);
+        allow_syscall(&mut rules, libc::SYS_epoll_wait);
+        allow_syscall(&mut rules, libc::SYS_epoll_pwait);
+        allow_syscall(&mut rules, libc::SYS_epoll_pwait2);
 
-    // Poll/select
-    allow_syscall(&mut rules, libc::SYS_poll);
-    allow_syscall(&mut rules, libc::SYS_ppoll);
-    allow_syscall(&mut rules, libc::SYS_select);
-    allow_syscall(&mut rules, libc::SYS_pselect6);
+        // Poll/select
+        allow_syscall(&mut rules, libc::SYS_poll);
+        allow_syscall(&mut rules, libc::SYS_ppoll);
+        allow_syscall(&mut rules, libc::SYS_select);
+        allow_syscall(&mut rules, libc::SYS_pselect6);
 
-    // Uname
-    allow_syscall(&mut rules, libc::SYS_uname);
+        // Uname
+        allow_syscall(&mut rules, libc::SYS_uname);
 
-    // Sysinfo
-    allow_syscall(&mut rules, libc::SYS_sysinfo);
+        // Sysinfo
+        allow_syscall(&mut rules, libc::SYS_sysinfo);
 
-    // Readlink (often used for path resolution)
-    allow_syscall(&mut rules, libc::SYS_readlink);
-    allow_syscall(&mut rules, libc::SYS_readlinkat);
+        // Readlink (often used for path resolution)
+        allow_syscall(&mut rules, libc::SYS_readlink);
+        allow_syscall(&mut rules, libc::SYS_readlinkat);
 
-    // Stat
-    allow_syscall(&mut rules, libc::SYS_fstat);
-    #[cfg(target_arch = "x86_64")]
-    allow_syscall(&mut rules, libc::SYS_newfstatat);
-    // aarch64 uses newfstatat (same syscall number as fstatat on 64-bit).
-    // SYS_fstatat64 is the 32-bit arm compat syscall and must not be added here.
-    allow_syscall(&mut rules, libc::SYS_stat);
-    allow_syscall(&mut rules, libc::SYS_lstat);
+        // Stat
+        allow_syscall(&mut rules, libc::SYS_fstat);
+        #[cfg(target_arch = "x86_64")]
+        allow_syscall(&mut rules, libc::SYS_newfstatat);
+        // aarch64 uses newfstatat (same syscall number as fstatat on 64-bit).
+        // SYS_fstatat64 is the 32-bit arm compat syscall and must not be added here.
+        allow_syscall(&mut rules, libc::SYS_stat);
+        allow_syscall(&mut rules, libc::SYS_lstat);
 
-    // Open (for file operations)
-    allow_syscall(&mut rules, libc::SYS_open);
-    allow_syscall(&mut rules, libc::SYS_openat);
+        // Open (for file operations)
+        allow_syscall(&mut rules, libc::SYS_open);
+        allow_syscall(&mut rules, libc::SYS_openat);
 
-    // Lseek
-    allow_syscall(&mut rules, libc::SYS_lseek);
+        // Lseek
+        allow_syscall(&mut rules, libc::SYS_lseek);
 
-    // NOTE: no SYS_mmap2 rule - mmap2 is a 32-bit-only syscall (arm/x86), and
-    // procjail supports only 64-bit arches (detect_arch accepts x86_64/aarch64/
-    // riscv64 and errors on 32-bit arm before this filter is ever built). A
-    // `#[cfg(target_arch = "arm")]` mmap2 rule here was unreachable dead code
-    // that implied 32-bit support the runtime does not have. 64-bit arches use
-    // SYS_mmap (allowed elsewhere).
+        // NOTE: no SYS_mmap2 rule - mmap2 is a 32-bit-only syscall (arm/x86), and
+        // procjail supports only 64-bit arches (detect_arch accepts x86_64/aarch64/
+        // riscv64 and errors on 32-bit arm before this filter is ever built). A
+        // `#[cfg(target_arch = "arm")]` mmap2 rule here was unreachable dead code
+        // that implied 32-bit support the runtime does not have. 64-bit arches use
+        // SYS_mmap (allowed elsewhere).
 
-    // Restart_syscall
-    allow_syscall(&mut rules, libc::SYS_restart_syscall);
+        // Restart_syscall
+        allow_syscall(&mut rules, libc::SYS_restart_syscall);
 
-    // Nanosleep
-    allow_syscall(&mut rules, libc::SYS_nanosleep);
-    allow_syscall(&mut rules, libc::SYS_clock_nanosleep);
+        // Nanosleep
+        allow_syscall(&mut rules, libc::SYS_nanosleep);
+        allow_syscall(&mut rules, libc::SYS_clock_nanosleep);
 
-    // Getcwd
-    allow_syscall(&mut rules, libc::SYS_getcwd);
+        // Getcwd
+        allow_syscall(&mut rules, libc::SYS_getcwd);
 
-    // Chdir
-    allow_syscall(&mut rules, libc::SYS_chdir);
-    allow_syscall(&mut rules, libc::SYS_fchdir);
+        // Chdir
+        allow_syscall(&mut rules, libc::SYS_chdir);
+        allow_syscall(&mut rules, libc::SYS_fchdir);
 
-    // Umask
-    allow_syscall(&mut rules, libc::SYS_umask);
+        // Umask
+        allow_syscall(&mut rules, libc::SYS_umask);
 
-    // Rlimit
-    allow_syscall(&mut rules, libc::SYS_getrlimit);
-    allow_syscall(&mut rules, libc::SYS_setrlimit);
-    allow_syscall(&mut rules, libc::SYS_prlimit64);
+        // Rlimit
+        allow_syscall(&mut rules, libc::SYS_getrlimit);
+        allow_syscall(&mut rules, libc::SYS_setrlimit);
+        allow_syscall(&mut rules, libc::SYS_prlimit64);
 
-    // Getgroups/setgroups
-    allow_syscall(&mut rules, libc::SYS_getgroups);
+        // Getgroups/setgroups
+        allow_syscall(&mut rules, libc::SYS_getgroups);
 
-    // Set_tid_address
-    allow_syscall(&mut rules, libc::SYS_set_tid_address);
+        // Set_tid_address
+        allow_syscall(&mut rules, libc::SYS_set_tid_address);
 
-    // SYS_seccomp is intentionally absent. Blocked to prevent nested filter
-    // installation and reduce kernel attack surface (filter exhaustion DoS).
+        // SYS_seccomp is intentionally absent. Blocked to prevent nested filter
+        // installation and reduce kernel attack surface (filter exhaustion DoS).
 
-    // Capget/capset
-    allow_syscall(&mut rules, libc::SYS_capget);
+        // Capget/capset
+        allow_syscall(&mut rules, libc::SYS_capget);
 
-    // Uid/gid mapping for user namespaces
-    allow_syscall(&mut rules, libc::SYS_setuid);
-    allow_syscall(&mut rules, libc::SYS_setgid);
-    allow_syscall(&mut rules, libc::SYS_setresuid);
-    allow_syscall(&mut rules, libc::SYS_setresgid);
+        // Uid/gid mapping for user namespaces
+        allow_syscall(&mut rules, libc::SYS_setuid);
+        allow_syscall(&mut rules, libc::SYS_setgid);
+        allow_syscall(&mut rules, libc::SYS_setresuid);
+        allow_syscall(&mut rules, libc::SYS_setresgid);
 
-    // === BLOCKED SYSCALLS ===
-    // These syscalls explicitly return EPERM
-    // They are added to the rules with an empty rule set and the filter's
-    // mismatch_action will apply to them
+        // === BLOCKED SYSCALLS ===
+        // These syscalls explicitly return EPERM
+        // They are added to the rules with an empty rule set and the filter's
+        // mismatch_action will apply to them
 
-    block_syscall_explicit(&mut rules, libc::SYS_ptrace);
-    block_syscall_explicit(&mut rules, libc::SYS_process_vm_readv);
-    block_syscall_explicit(&mut rules, libc::SYS_process_vm_writev);
-    block_syscall_explicit(&mut rules, libc::SYS_mount);
-    block_syscall_explicit(&mut rules, libc::SYS_umount2);
-    block_syscall_explicit(&mut rules, libc::SYS_reboot);
-    block_syscall_explicit(&mut rules, libc::SYS_swapon);
-    block_syscall_explicit(&mut rules, libc::SYS_swapoff);
-    block_syscall_explicit(&mut rules, libc::SYS_kexec_load);
-    block_syscall_explicit(&mut rules, libc::SYS_kexec_file_load);
-    block_syscall_explicit(&mut rules, libc::SYS_bpf);
-    block_syscall_explicit(&mut rules, libc::SYS_userfaultfd);
-    block_syscall_explicit(&mut rules, libc::SYS_perf_event_open);
-    block_syscall_explicit(&mut rules, libc::SYS_perf_event_open);
+        block_syscall_explicit(&mut rules, libc::SYS_ptrace);
+        block_syscall_explicit(&mut rules, libc::SYS_process_vm_readv);
+        block_syscall_explicit(&mut rules, libc::SYS_process_vm_writev);
+        block_syscall_explicit(&mut rules, libc::SYS_mount);
+        block_syscall_explicit(&mut rules, libc::SYS_umount2);
+        block_syscall_explicit(&mut rules, libc::SYS_reboot);
+        block_syscall_explicit(&mut rules, libc::SYS_swapon);
+        block_syscall_explicit(&mut rules, libc::SYS_swapoff);
+        block_syscall_explicit(&mut rules, libc::SYS_kexec_load);
+        block_syscall_explicit(&mut rules, libc::SYS_kexec_file_load);
+        block_syscall_explicit(&mut rules, libc::SYS_bpf);
+        block_syscall_explicit(&mut rules, libc::SYS_userfaultfd);
+        block_syscall_explicit(&mut rules, libc::SYS_perf_event_open);
+        block_syscall_explicit(&mut rules, libc::SYS_perf_event_open);
 
-    // Create the filter with:
-    // - mismatch_action: EPERM (for any syscall not in the allow list)
-    // - match_action: Allow (for syscalls in the allow list with matching rules)
-    let filter = SeccompFilter::new(
-        rules,
-        SeccompAction::Errno(libc::EPERM as u32),
-        SeccompAction::Allow,
-        target_arch,
-    )
-    .map_err(|e| SeccompError::FilterCreation(e.to_string()))?;
+        // Create the filter with:
+        // - mismatch_action: EPERM (for any syscall not in the allow list)
+        // - match_action: Allow (for syscalls in the allow list with matching rules)
+        let filter = SeccompFilter::new(
+            rules,
+            SeccompAction::Errno(libc::EPERM as u32),
+            SeccompAction::Allow,
+            target_arch,
+        )
+        .map_err(|e| SeccompError::FilterCreation(e.to_string()))?;
 
-    filter
-        .try_into()
-        .map_err(|e| SeccompError::FilterCreation(format!("BPF compilation failed: {e}")))
-
+        filter
+            .try_into()
+            .map_err(|e| SeccompError::FilterCreation(format!("BPF compilation failed: {e}")))
     }
 }
 
@@ -417,7 +416,7 @@ mod tests {
         let result = build_filter();
         if cfg!(target_arch = "x86_64") {
             assert!(
-                matches!(result, Ok(ref filter) if filter.len() > 0),
+                matches!(result, Ok(ref filter) if !filter.is_empty()),
                 "expected a non-empty seccomp BPF filter on x86_64, got {result:?}"
             );
         } else {

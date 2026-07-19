@@ -72,6 +72,9 @@ pub(crate) unsafe fn syscall_capget(
 }
 
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-pub(crate) unsafe fn syscall_arch_prctl(code: libc::c_ulong, addr: *mut libc::c_void) -> libc::c_int {
+pub(crate) unsafe fn syscall_arch_prctl(
+    code: libc::c_ulong,
+    addr: *mut libc::c_void,
+) -> libc::c_int {
     libc::syscall(libc::SYS_arch_prctl, code, addr) as libc::c_int
 }

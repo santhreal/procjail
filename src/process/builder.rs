@@ -1,4 +1,3 @@
-
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
@@ -225,7 +224,7 @@ fn count_threads_for_uid(uid: u32) -> u64 {
                 let uid_ok = content
                     .lines()
                     .find(|line| line.starts_with("Uid:"))
-                    .map_or(false, |line| {
+                    .is_some_and(|line| {
                         line.split_whitespace()
                             .nth(1)
                             .and_then(|s| s.parse::<u32>().ok())
@@ -246,7 +245,7 @@ fn count_threads_for_uid(uid: u32) -> u64 {
     }
     count
 }
-/// Return the RLIMIT_NPROC soft/hard limit for the current real UID.
+/// Return the `RLIMIT_NPROC` soft/hard limit for the current real UID.
 ///
 /// The limit is the current UID thread count plus the configured sandbox
 /// headroom plus a small fixed buffer so the child can make at least one
@@ -257,7 +256,6 @@ fn nproc_limit_for_uid(max_processes: u64) -> u64 {
         .saturating_add(max_processes)
         .saturating_add(64)
 }
-
 
 /// Apply rlimits and seccomp in a `pre_exec` closure.
 ///
@@ -281,10 +279,9 @@ fn apply_pre_exec_isolation(cmd: &mut Command, config: &SandboxConfig) {
     unsafe {
         cmd.pre_exec(move || {
             if let Err(e) = close_inherited_fds() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Fix: close all fds >2 before exec to prevent information leaks. {e}")
-                ));
+                return Err(std::io::Error::other(format!(
+                    "Fix: close all fds >2 before exec to prevent information leaks. {e}"
+                )));
             }
 
             let rlim_as = libc::rlimit {
@@ -323,10 +320,9 @@ fn apply_pre_exec_isolation(cmd: &mut Command, config: &SandboxConfig) {
             }
 
             if let Err(e) = crate::seccomp::apply_seccomp_filter() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Fix: verify kernel has CONFIG_SECCOMP=y and container runtime does not block prctl(PR_SET_SECCOMP). {e}")
-                ));
+                return Err(std::io::Error::other(format!(
+                    "Fix: verify kernel has CONFIG_SECCOMP=y and container runtime does not block prctl(PR_SET_SECCOMP). {e}"
+                )));
             }
             Ok(())
         });
@@ -463,7 +459,7 @@ fn build_firejail_command(
     cmd.arg(format!("--rlimit-as={}", config.max_memory_bytes));
     cmd.arg(format!("--rlimit-nofile={}", config.max_fds));
     let firejail_nproc_limit = nproc_limit_for_uid(config.max_processes);
-    cmd.arg(format!("--rlimit-nproc={}", firejail_nproc_limit));
+    cmd.arg(format!("--rlimit-nproc={firejail_nproc_limit}"));
     cmd.arg(format!(
         "--timeout=00:{:02}:{:02}",
         config.timeout_seconds / 60,
@@ -614,6 +610,7 @@ impl WatchdogCancel {
 
     /// True if cancellation has been requested.
     #[must_use]
+    #[allow(dead_code)] // exercised by unit tests in this module
     pub fn is_cancelled(&self) -> bool {
         *self
             .cancelled
@@ -707,8 +704,14 @@ mod bwrap_bind_tests {
             .runtime("/bin/sh")
             .strategy(Strategy::Bubblewrap)
             .build();
-        let cmd = build_command(runtime, &harness, work.path(), &config, Strategy::Bubblewrap)
-            .expect("build_command should succeed for the bwrap strategy");
+        let cmd = build_command(
+            runtime,
+            &harness,
+            work.path(),
+            &config,
+            Strategy::Bubblewrap,
+        )
+        .expect("build_command should succeed for the bwrap strategy");
 
         let args: Vec<String> = cmd
             .get_args()
@@ -749,8 +752,14 @@ mod bwrap_bind_tests {
             .runtime("sh")
             .strategy(Strategy::Bubblewrap)
             .build();
-        let cmd = build_command(runtime, &harness, work.path(), &config, Strategy::Bubblewrap)
-            .expect("build_command should succeed for the bwrap strategy");
+        let cmd = build_command(
+            runtime,
+            &harness,
+            work.path(),
+            &config,
+            Strategy::Bubblewrap,
+        )
+        .expect("build_command should succeed for the bwrap strategy");
 
         let args: Vec<String> = cmd
             .get_args()
@@ -762,15 +771,18 @@ mod bwrap_bind_tests {
             "/usr must be --ro-bind mounted for bare-name runtime; args={args:?}"
         );
         assert!(
-            args.windows(3).any(|w| w[0] == "--ro-bind-try" && w[1] == "/bin" && w[2] == "/bin"),
+            args.windows(3)
+                .any(|w| w[0] == "--ro-bind-try" && w[1] == "/bin" && w[2] == "/bin"),
             "/bin must be --ro-bind-try mounted for bare-name runtime; args={args:?}"
         );
         assert!(
-            args.windows(3).any(|w| w[0] == "--ro-bind-try" && w[1] == "/lib" && w[2] == "/lib"),
+            args.windows(3)
+                .any(|w| w[0] == "--ro-bind-try" && w[1] == "/lib" && w[2] == "/lib"),
             "/lib must be --ro-bind-try mounted for bare-name runtime; args={args:?}"
         );
         assert!(
-            args.windows(3).any(|w| w[0] == "--ro-bind-try" && w[1] == "/lib64" && w[2] == "/lib64"),
+            args.windows(3)
+                .any(|w| w[0] == "--ro-bind-try" && w[1] == "/lib64" && w[2] == "/lib64"),
             "/lib64 must be --ro-bind-try mounted for bare-name runtime; args={args:?}"
         );
     }
@@ -835,4 +847,3 @@ mod watchdog_cancel_tests {
         );
     }
 }
-

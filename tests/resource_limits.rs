@@ -46,7 +46,8 @@ while True:
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
 
     // The process should die before the 10-second timeout.
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -84,11 +85,13 @@ fn memory_limit_kills_shell_allocator() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_ne!(
         usage.exit_code, 0,
-        "shell allocator must be killed; exit_code={}", usage.exit_code
+        "shell allocator must be killed; exit_code={}",
+        usage.exit_code
     );
     assert!(
         usage.wall_time_secs < 8.0,
@@ -117,7 +120,8 @@ while True:
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_ne!(
         usage.exit_code, 0,
@@ -135,10 +139,7 @@ while True:
 #[test]
 fn cpu_limit_kills_shell_busy_loop() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nwhile :; do :; done\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nwhile :; do :; done\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -147,7 +148,8 @@ fn cpu_limit_kills_shell_busy_loop() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_ne!(
         usage.exit_code, 0,
@@ -161,10 +163,7 @@ fn cpu_limit_kills_shell_busy_loop() {
 #[test]
 fn well_behaved_process_survives_tight_limits() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho done\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho done\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -174,7 +173,8 @@ fn well_behaved_process_survives_tight_limits() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(line.trim(), "done");
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -185,10 +185,7 @@ fn well_behaved_process_survives_tight_limits() {
 #[test]
 fn timeout_overrides_generous_limits() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nsleep 300\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nsleep 300\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -198,9 +195,13 @@ fn timeout_overrides_generous_limits() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
-    assert!(proc.killed_by_timeout, "watchdog must kill sleeping process");
+    assert!(
+        proc.killed_by_timeout,
+        "watchdog must kill sleeping process"
+    );
     assert!(
         usage.wall_time_secs < 3.0,
         "timeout should fire around 1s; took {}s",
@@ -229,9 +230,13 @@ fn fork_bomb_is_contained_by_timeout() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
-    assert!(proc.killed_by_timeout, "fork bomb must be stopped by timeout");
+    assert!(
+        proc.killed_by_timeout,
+        "fork bomb must be stopped by timeout"
+    );
     assert!(
         usage.wall_time_secs < 4.0,
         "fork bomb timeout should fire quickly; took {}s",
@@ -263,7 +268,8 @@ for i in range(100):
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_ne!(usage.exit_code, 0);
     // Peak memory should be reported and should be >= the limit or at least substantial.
@@ -294,15 +300,13 @@ fn cpu_usage_reported_for_short_process() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let _ = proc.recv();
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0);
     if let Some(cpu) = usage.cpu_time_secs {
-        assert!(
-            cpu >= 0.0,
-            "cpu time should be non-negative"
-        );
+        assert!(cpu >= 0.0, "cpu time should be non-negative");
     }
 }
 
@@ -326,7 +330,8 @@ fn rapid_fork_exit_is_limited_by_timeout() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
     assert!(proc.killed_by_timeout);
     assert!(
@@ -353,7 +358,8 @@ fn large_stdout_bounded_by_recv_limit() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     // recv should have read at most 5 bytes.
     assert!(
@@ -369,10 +375,7 @@ fn large_stdout_bounded_by_recv_limit() {
 #[cfg(target_os = "linux")]
 fn memory_limit_enforced_under_unshare() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nwhile :; do :; done\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nwhile :; do :; done\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -394,7 +397,10 @@ fn memory_limit_enforced_under_unshare() {
     };
 
     let usage = proc.wait_with_usage().expect("wait failed");
-    assert_ne!(usage.exit_code, 0, "CPU limit must be enforced under unshare");
+    assert_ne!(
+        usage.exit_code, 0,
+        "CPU limit must be enforced under unshare"
+    );
 }
 
 /// Test memory limit with Strategy::Bubblewrap (if available).
@@ -402,10 +408,7 @@ fn memory_limit_enforced_under_unshare() {
 #[cfg(target_os = "linux")]
 fn memory_limit_enforced_under_bwrap() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nwhile :; do :; done\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nwhile :; do :; done\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -426,7 +429,10 @@ fn memory_limit_enforced_under_bwrap() {
     };
 
     let usage = proc.wait_with_usage().expect("wait failed");
-    assert_ne!(usage.exit_code, 0, "CPU limit must be enforced under bubblewrap");
+    assert_ne!(
+        usage.exit_code, 0,
+        "CPU limit must be enforced under bubblewrap"
+    );
 }
 
 /// Test that a cgroup-based memory limit actually limits resident set when
@@ -455,7 +461,8 @@ while True:
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_ne!(
         usage.exit_code, 0,

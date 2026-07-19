@@ -10,7 +10,6 @@
 //!   that the filter is inherited correctly across execve)
 
 use std::ffi::CString;
-use std::os::unix::io::AsRawFd;
 
 #[path = "seccomp_linux_helpers.rs"]
 mod linux_helpers;
@@ -58,11 +57,7 @@ where
             pid => {
                 libc::close(pipe_fds[1]);
                 let mut buf = [0u8; 4];
-                let n = libc::read(
-                    pipe_fds[0],
-                    buf.as_mut_ptr() as *mut libc::c_void,
-                    4,
-                );
+                let n = libc::read(pipe_fds[0], buf.as_mut_ptr() as *mut libc::c_void, 4);
                 libc::close(pipe_fds[0]);
                 let mut status = 0;
                 libc::waitpid(pid, &mut status, 0);
@@ -112,7 +107,12 @@ fn dup2_cannot_bypass_seccomp() {
             return std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
         }
         // Now try a blocked syscall; it should still fail.
-        let ret = libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0);
+        let ret = libc::syscall(
+            libc::SYS_socket,
+            libc::AF_INET as usize,
+            libc::SOCK_STREAM as usize,
+            0,
+        );
         if ret < 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             if e != libc::EPERM {
@@ -145,7 +145,12 @@ fn dup3_cannot_bypass_seccomp() {
         if newfd < 0 {
             return std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
         }
-        let ret = libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0);
+        let ret = libc::syscall(
+            libc::SYS_socket,
+            libc::AF_INET as usize,
+            libc::SOCK_STREAM as usize,
+            0,
+        );
         if ret < 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             if e != libc::EPERM {
@@ -178,7 +183,10 @@ fn prctl_disable_seccomp_is_blocked() {
             libc::EPERM
         }
     });
-    assert_ne!(errno, 0, "prctl(PR_SET_SECCOMP, DISABLED) must fail; got errno={errno}");
+    assert_ne!(
+        errno, 0,
+        "prctl(PR_SET_SECCOMP, DISABLED) must fail; got errno={errno}"
+    );
 }
 
 /// Attempt to install a second seccomp filter that is more permissive.
@@ -203,7 +211,7 @@ fn nested_seccomp_filter_cannot_weaken_first() {
                 code: (libc::BPF_RET | libc::BPF_K) as u16,
                 jt: 0,
                 jf: 0,
-                k: libc::SECCOMP_RET_ALLOW as u32,
+                k: libc::SECCOMP_RET_ALLOW,
             },
         ];
         let prog = libc::sock_fprog {
@@ -222,7 +230,12 @@ fn nested_seccomp_filter_cannot_weaken_first() {
         let _ = ret;
 
         // Now try a syscall that was blocked by the original filter.
-        let ret2 = libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0);
+        let ret2 = libc::syscall(
+            libc::SYS_socket,
+            libc::AF_INET as usize,
+            libc::SOCK_STREAM as usize,
+            0,
+        );
         if ret2 < 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             if e != libc::EPERM {
@@ -233,7 +246,10 @@ fn nested_seccomp_filter_cannot_weaken_first() {
         }
         0
     });
-    assert_eq!(errno, 0, "nested seccomp must not weaken the original filter; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "nested seccomp must not weaken the original filter; got errno={errno}"
+    );
 }
 
 /// Attempt to use prctl(PR_SET_NO_NEW_PRIVS, 0) to unset it.  This should
@@ -249,7 +265,10 @@ fn prctl_unset_no_new_privs_is_blocked() {
             libc::EPERM
         }
     });
-    assert_ne!(errno, 0, "prctl(PR_SET_NO_NEW_PRIVS, 0) must fail; got errno={errno}");
+    assert_ne!(
+        errno, 0,
+        "prctl(PR_SET_NO_NEW_PRIVS, 0) must fail; got errno={errno}"
+    );
 }
 
 /// Attempt to raise privileges via prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_RAISE).
@@ -273,7 +292,10 @@ fn prctl_cap_ambient_raise_fails_under_no_new_privs() {
             libc::EPERM
         }
     });
-    assert_ne!(errno, 0, "prctl(CAP_AMBIENT_RAISE) must fail under NO_NEW_PRIVS; got errno={errno}");
+    assert_ne!(
+        errno, 0,
+        "prctl(CAP_AMBIENT_RAISE) must fail under NO_NEW_PRIVS; got errno={errno}"
+    );
 }
 
 // =============================================================================
@@ -287,7 +309,12 @@ fn prctl_cap_ambient_raise_fails_under_no_new_privs() {
 #[cfg(target_os = "linux")]
 fn raw_syscall_socket_still_blocked() {
     let errno = run_in_seccomp(|| unsafe {
-        let ret = libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0);
+        let ret = libc::syscall(
+            libc::SYS_socket,
+            libc::AF_INET as usize,
+            libc::SOCK_STREAM as usize,
+            0,
+        );
         if ret < 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             if e != libc::EPERM {
@@ -298,7 +325,10 @@ fn raw_syscall_socket_still_blocked() {
         }
         0
     });
-    assert_eq!(errno, 0, "raw syscall bypass must not work; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "raw syscall bypass must not work; got errno={errno}"
+    );
 }
 
 /// Same test but for ptrace  -  the most dangerous syscall for sandbox escapes.
@@ -317,7 +347,10 @@ fn raw_syscall_ptrace_still_blocked() {
         }
         0
     });
-    assert_eq!(errno, 0, "raw ptrace bypass must not work; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "raw ptrace bypass must not work; got errno={errno}"
+    );
 }
 
 /// Attempt to call mount via raw syscall.
@@ -336,7 +369,10 @@ fn raw_syscall_mount_still_blocked() {
         }
         0
     });
-    assert_eq!(errno, 0, "raw mount bypass must not work; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "raw mount bypass must not work; got errno={errno}"
+    );
 }
 
 /// Attempt to open /proc/self/mem (often used for code injection) via openat.
@@ -401,7 +437,11 @@ fn seccomp_filter_is_inherited_across_execve() {
         assert_eq!(libc::WEXITSTATUS(status), 0, "helper script must exit 0");
         let output = String::from_utf8_lossy(&buf[..n as usize]);
         let errno: i32 = output.trim().parse().expect("helper must print errno");
-        assert_eq!(errno, libc::EPERM as i32, "inherited filter must block socket; got errno={errno}");
+        assert_eq!(
+            errno,
+            libc::EPERM,
+            "inherited filter must block socket; got errno={errno}"
+        );
     }
 }
 
@@ -425,11 +465,7 @@ fn sigsys_default_terminates_process() {
             // Trigger a blocked syscall (socket) which delivers SIGSYS by default
             // unless the action is EPERM.  Our filter uses EPERM, so no signal.
             // This test is really a no-op for our filter, but documents the behavior.
-            libc::write(
-                pipe_fds[1],
-                b"ok".as_ptr() as *const libc::c_void,
-                2,
-            );
+            libc::write(pipe_fds[1], b"ok".as_ptr() as *const libc::c_void, 2);
             libc::close(pipe_fds[1]);
             libc::exit(0);
         }
@@ -479,7 +515,8 @@ fn clone_thread_inherits_seccomp() {
         result.load(Ordering::SeqCst)
     });
     assert_eq!(
-        errno, libc::EPERM,
+        errno,
+        libc::EPERM,
         "thread must inherit seccomp filter; got errno={errno}"
     );
 }
@@ -495,7 +532,10 @@ fn clone_thread_inherits_seccomp() {
 #[cfg(target_os = "linux")]
 fn proc_self_status_shows_seccomp_mode() {
     let errno = run_in_seccomp(|| unsafe {
-        let fd = libc::open(CString::new("/proc/self/status").unwrap().as_ptr(), libc::O_RDONLY);
+        let fd = libc::open(
+            CString::new("/proc/self/status").unwrap().as_ptr(),
+            libc::O_RDONLY,
+        );
         if fd < 0 {
             return std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
         }
@@ -512,5 +552,8 @@ fn proc_self_status_shows_seccomp_mode() {
         );
         0
     });
-    assert_eq!(errno, 0, "reading /proc/self/status must succeed; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "reading /proc/self/status must succeed; got errno={errno}"
+    );
 }

@@ -18,7 +18,10 @@ fn create_sh_harness(dir: &Path, script: &str) -> std::path::PathBuf {
     harness
 }
 
-fn skip_if_unavailable(result: Result<SandboxedProcess, procjail::ProcjailError>, tool: &str) -> Option<SandboxedProcess> {
+fn skip_if_unavailable(
+    result: Result<SandboxedProcess, procjail::ProcjailError>,
+    tool: &str,
+) -> Option<SandboxedProcess> {
     match result {
         Ok(p) => Some(p),
         Err(e) => {
@@ -40,10 +43,7 @@ fn skip_if_unavailable(result: Result<SandboxedProcess, procjail::ProcjailError>
 #[cfg(target_os = "linux")]
 fn unshare_pid_namespace_shows_pid_one() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho $$\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho $$\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -51,14 +51,20 @@ fn unshare_pid_namespace_shows_pid_one() {
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };
 
     let line = proc.recv().expect("recv failed").expect("eof early");
     let pid: i32 = line.trim().parse().expect("output should be a pid");
-    assert_eq!(pid, 1, "PID namespace root process must see itself as PID 1");
+    assert_eq!(
+        pid, 1,
+        "PID namespace root process must see itself as PID 1"
+    );
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0);
 }
@@ -68,10 +74,7 @@ fn unshare_pid_namespace_shows_pid_one() {
 #[cfg(target_os = "linux")]
 fn bwrap_pid_namespace_shows_pid_one() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho $$\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho $$\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -79,7 +82,10 @@ fn bwrap_pid_namespace_shows_pid_one() {
         .strategy(Strategy::Bubblewrap)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "bwrap") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "bwrap",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -96,10 +102,7 @@ fn bwrap_pid_namespace_shows_pid_one() {
 #[cfg(target_os = "linux")]
 fn firejail_pid_namespace_isolates() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho $$\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho $$\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -107,7 +110,10 @@ fn firejail_pid_namespace_isolates() {
         .strategy(Strategy::Firejail)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "firejail") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "firejail",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -130,10 +136,7 @@ fn firejail_pid_namespace_isolates() {
 #[cfg(target_os = "linux")]
 fn unshare_cannot_see_host_pids() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nls /proc | wc -w\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nls /proc | wc -w\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -141,7 +144,10 @@ fn unshare_cannot_see_host_pids() {
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -179,7 +185,10 @@ fn unshare_network_namespace_isolates_interfaces() {
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -218,7 +227,10 @@ fn bwrap_network_namespace_blocks_external() {
         .strategy(Strategy::Bubblewrap)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "bwrap") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "bwrap",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -251,7 +263,10 @@ fn bwrap_allow_localhost_permits_network() {
         .strategy(Strategy::Bubblewrap)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "bwrap") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "bwrap",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -285,13 +300,20 @@ fn firejail_network_namespace_blocks_external() {
         .strategy(Strategy::Firejail)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "firejail") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "firejail",
+    ) {
         Some(p) => p,
         None => return,
     };
 
     let line = proc.recv().expect("recv failed").expect("eof early");
-    assert_eq!(line.trim(), "BLOCKED", "firejail must block external network");
+    assert_eq!(
+        line.trim(),
+        "BLOCKED",
+        "firejail must block external network"
+    );
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0);
 }
@@ -327,7 +349,10 @@ fn unshare_mount_namespace_isolates_changes() {
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -372,7 +397,10 @@ fn bwrap_filesystem_isolation_blocks_host_root() {
         .strategy(Strategy::Bubblewrap)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "bwrap") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "bwrap",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -390,10 +418,7 @@ fn bwrap_filesystem_isolation_blocks_host_root() {
 #[cfg(target_os = "linux")]
 fn firejail_filesystem_isolation_private_workdir() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\npwd\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\npwd\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -401,7 +426,10 @@ fn firejail_filesystem_isolation_private_workdir() {
         .strategy(Strategy::Firejail)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "firejail") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "firejail",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -426,10 +454,7 @@ fn firejail_filesystem_isolation_private_workdir() {
 #[cfg(target_os = "linux")]
 fn unshare_user_namespace_maps_root() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nid -u\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nid -u\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -437,14 +462,20 @@ fn unshare_user_namespace_maps_root() {
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };
 
     let line = proc.recv().expect("recv failed").expect("eof early");
     let uid: u32 = line.trim().parse().expect("output should be a uid");
-    assert_eq!(uid, 0, "unshare --map-root-user must map current user to root");
+    assert_eq!(
+        uid, 0,
+        "unshare --map-root-user must map current user to root"
+    );
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0);
 }
@@ -472,7 +503,10 @@ print(errno.errorcode.get(ctypes.get_errno(), \"UNKNOWN\"))
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };
@@ -516,7 +550,10 @@ fn namespaced_process_cannot_signal_parent() {
         .strategy(Strategy::Unshare)
         .build();
 
-    let mut proc = match skip_if_unavailable(SandboxedProcess::spawn(&harness, work_dir.path(), &config), "unshare") {
+    let mut proc = match skip_if_unavailable(
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config),
+        "unshare",
+    ) {
         Some(p) => p,
         None => return,
     };

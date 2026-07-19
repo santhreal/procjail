@@ -1,5 +1,4 @@
-use std::path::Path;
-use procjail::{SandboxConfig, SandboxedProcess, Strategy, ResourceUsage};
+use procjail::{ResourceUsage, SandboxConfig, SandboxedProcess, Strategy};
 
 #[test]
 fn resource_usage_fields() {

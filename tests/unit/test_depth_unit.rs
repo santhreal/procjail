@@ -1,5 +1,5 @@
 use procjail::{
-    quick_spawn, available_strategy, probe_capabilities, EnvMode, SandboxConfig, Strategy
+    available_strategy, probe_capabilities, quick_spawn, EnvMode, SandboxConfig, Strategy,
 };
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -39,7 +39,10 @@ fn test_sandbox_config_builder_methods() {
 
     let passthrough: HashSet<String> = ["FOO".to_string(), "BAR".to_string()].into_iter().collect();
     assert_eq!(config.env_passthrough, passthrough);
-    assert_eq!(config.env_set, vec![("CUSTOM".to_string(), "value".to_string())]);
+    assert_eq!(
+        config.env_set,
+        vec![("CUSTOM".to_string(), "value".to_string())]
+    );
     assert!(!config.env_strip_secrets);
 
     let strip: HashSet<String> = ["STRIP_ME".to_string()].into_iter().collect();
@@ -47,8 +50,14 @@ fn test_sandbox_config_builder_methods() {
 
     assert_eq!(config.env_mode, EnvMode::Blocklist);
     assert_eq!(config.force_strategy, Some(Strategy::Bubblewrap));
-    assert_eq!(config.readonly_mounts, vec![(PathBuf::from("/ro/host"), PathBuf::from("/ro/container"))]);
-    assert_eq!(config.writable_mounts, vec![(PathBuf::from("/rw/host"), PathBuf::from("/rw/container"))]);
+    assert_eq!(
+        config.readonly_mounts,
+        vec![(PathBuf::from("/ro/host"), PathBuf::from("/ro/container"))]
+    );
+    assert_eq!(
+        config.writable_mounts,
+        vec![(PathBuf::from("/rw/host"), PathBuf::from("/rw/container"))]
+    );
     assert_eq!(config.timeout_seconds, 300);
     assert!(config.capture_stderr);
     assert_eq!(config.max_recv_line_bytes, 2048);
@@ -72,7 +81,7 @@ fn test_sandbox_config_load() {
         capture_stderr = true
         max_recv_line_bytes = 100
     "#;
-    
+
     let dir = tempfile::tempdir().unwrap();
     let file_path = dir.path().join("config.toml");
     std::fs::write(&file_path, toml).unwrap();
@@ -99,7 +108,7 @@ fn test_quick_spawn_success() {
     let dir = tempfile::tempdir().unwrap();
     let harness = dir.path().join("harness.sh");
     std::fs::write(&harness, "#!/bin/sh\nexit 0\n").unwrap();
-    
+
     // Set executable permissions natively
     #[cfg(unix)]
     {

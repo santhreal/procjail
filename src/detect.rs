@@ -80,9 +80,7 @@ pub fn probe_capabilities() -> ContainmentLevel {
     let firejail_res = check_firejail();
     let has_firejail = firejail_res.as_ref().map_or_else(
         |e| {
-            diagnostics.push(format!(
-                "firejail unavailable: {e}. Fix: install firejail."
-            ));
+            diagnostics.push(format!("firejail unavailable: {e}. Fix: install firejail."));
             false
         },
         |v| *v,

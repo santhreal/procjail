@@ -1,6 +1,6 @@
+use std::io::{BufRead, BufReader, Write};
 use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
-use std::io::{BufRead, BufReader, Write};
 
 fn main() {
     let mut cmd = Command::new("sh");
@@ -9,7 +9,7 @@ fn main() {
     cmd.stdin(Stdio::piped());
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::inherit());
-    
+
     unsafe {
         cmd.pre_exec(|| {
             let max_mem = 256u64 * 1024 * 1024;
@@ -34,19 +34,19 @@ fn main() {
             Ok(())
         });
     }
-    
+
     let mut child = cmd.spawn().unwrap();
     let mut stdin = child.stdin.take().unwrap();
     let stdout = child.stdout.take().unwrap();
-    
+
     writeln!(stdin, "hello").unwrap();
     stdin.flush().unwrap();
-    
+
     let mut reader = BufReader::new(stdout);
     let mut line = String::new();
     let n = reader.read_line(&mut line).unwrap();
     println!("Read {} bytes: {:?}", n, line);
-    
+
     let status = child.wait().unwrap();
     println!("Exit: {:?}", status);
 }

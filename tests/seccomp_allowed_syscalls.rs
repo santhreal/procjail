@@ -12,7 +12,7 @@ use std::ffi::CString;
 #[cfg(target_os = "linux")]
 use linux_helpers::{
     syscall_arch_prctl, syscall_capget, syscall_eventfd2, syscall_exit_group,
-    syscall_set_tid_address, syscall_signalfd4, ARCH_GET_FS, CapUserData, CapUserHeader,
+    syscall_set_tid_address, syscall_signalfd4, CapUserData, CapUserHeader, ARCH_GET_FS,
     LINUX_CAPABILITY_VERSION_3,
 };
 
@@ -49,11 +49,7 @@ where
             pid => {
                 libc::close(pipe_fds[1]);
                 let mut buf = [0u8; 4];
-                let n = libc::read(
-                    pipe_fds[0],
-                    buf.as_mut_ptr() as *mut libc::c_void,
-                    4,
-                );
+                let n = libc::read(pipe_fds[0], buf.as_mut_ptr() as *mut libc::c_void, 4);
                 libc::close(pipe_fds[0]);
                 let mut status = 0;
                 libc::waitpid(pid, &mut status, 0);
@@ -93,7 +89,11 @@ fn read_from_pipe_is_allowed() {
         let n = libc::read(fds[0], buf.as_mut_ptr() as *mut libc::c_void, 1);
         libc::close(fds[0]);
         libc::close(fds[1]);
-        if n == 1 { 0 } else { libc::EIO }
+        if n == 1 {
+            0
+        } else {
+            libc::EIO
+        }
     });
     assert_eq!(errno, 0, "read from pipe must succeed; got errno={errno}");
 }
@@ -110,7 +110,11 @@ fn write_to_pipe_is_allowed() {
         let n = libc::write(fds[1], msg.as_ptr() as *const libc::c_void, msg.len());
         libc::close(fds[0]);
         libc::close(fds[1]);
-        if n == msg.len() as isize { 0 } else { libc::EIO }
+        if n == msg.len() as isize {
+            0
+        } else {
+            libc::EIO
+        }
     });
     assert_eq!(errno, 0, "write to pipe must succeed; got errno={errno}");
 }
@@ -274,14 +278,17 @@ fn rt_sigreturn_is_allowed() {
     let errno = run_in_seccomp(|| unsafe {
         let mut act: libc::sigaction = std::mem::zeroed();
         extern "C" fn handler(_: libc::c_int) {}
-        act.sa_sigaction = handler as usize;
+        act.sa_sigaction = handler as *const () as usize;
         libc::sigemptyset(&mut act.sa_mask);
         act.sa_flags = 0;
         libc::sigaction(libc::SIGUSR2, &act, std::ptr::null_mut());
         libc::kill(libc::getpid(), libc::SIGUSR2);
         0
     });
-    assert_eq!(errno, 0, "signal handling (which uses rt_sigreturn) must succeed; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "signal handling (which uses rt_sigreturn) must succeed; got errno={errno}"
+    );
 }
 
 // =============================================================================
@@ -406,7 +413,10 @@ fn ioctl_on_tty_is_allowed() {
         }
         0
     });
-    assert_eq!(errno, 0, "ioctl must not be blocked by seccomp; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "ioctl must not be blocked by seccomp; got errno={errno}"
+    );
 }
 
 // =============================================================================
@@ -510,7 +520,11 @@ fn lstat_is_allowed() {
 fn openat_is_allowed() {
     let path = CString::new("/").unwrap();
     let errno = run_in_seccomp(|| unsafe {
-        let fd = libc::openat(libc::AT_FDCWD, path.as_ptr(), libc::O_RDONLY | libc::O_DIRECTORY);
+        let fd = libc::openat(
+            libc::AT_FDCWD,
+            path.as_ptr(),
+            libc::O_RDONLY | libc::O_DIRECTORY,
+        );
         if fd < 0 {
             std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
         } else {
@@ -707,7 +721,11 @@ fn nanosleep_is_allowed() {
         if libc::nanosleep(&req, &mut rem) != 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             // EINTR is acceptable.
-            if e == libc::EINTR { 0 } else { e }
+            if e == libc::EINTR {
+                0
+            } else {
+                e
+            }
         } else {
             0
         }
@@ -726,7 +744,11 @@ fn clock_nanosleep_is_allowed() {
         let mut rem: libc::timespec = std::mem::zeroed();
         if libc::clock_nanosleep(libc::CLOCK_MONOTONIC, 0, &req, &mut rem) != 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
-            if e == libc::EINTR { 0 } else { e }
+            if e == libc::EINTR {
+                0
+            } else {
+                e
+            }
         } else {
             0
         }
@@ -743,11 +765,7 @@ fn clock_nanosleep_is_allowed() {
 fn getrandom_is_allowed() {
     let errno = run_in_seccomp(|| unsafe {
         let mut buf = [0u8; 16];
-        let n = libc::getrandom(
-            buf.as_mut_ptr() as *mut libc::c_void,
-            buf.len(),
-            0,
-        );
+        let n = libc::getrandom(buf.as_mut_ptr() as *mut libc::c_void, buf.len(), 0);
         if n < 0 {
             std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
         } else {
@@ -949,7 +967,10 @@ fn chdir_is_allowed() {
 #[cfg(target_os = "linux")]
 fn fchdir_is_allowed() {
     let errno = run_in_seccomp(|| unsafe {
-        let fd = libc::open(CString::new("/tmp").unwrap().as_ptr(), libc::O_RDONLY | libc::O_DIRECTORY);
+        let fd = libc::open(
+            CString::new("/tmp").unwrap().as_ptr(),
+            libc::O_RDONLY | libc::O_DIRECTORY,
+        );
         if fd < 0 {
             return std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
         }
@@ -1055,7 +1076,8 @@ fn prctl_get_name_is_blocked() {
         }
     });
     assert_eq!(
-        errno, libc::EPERM,
+        errno,
+        libc::EPERM,
         "prctl must stay blocked to prevent filter tampering; got errno={errno}"
     );
 }
@@ -1095,10 +1117,17 @@ fn restart_syscall_is_allowed() {
         if ret < 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             // Accept ENOSYS or EINVAL; reject EPERM.
-            if e == libc::EPERM { libc::EPERM } else { 0 }
+            if e == libc::EPERM {
+                libc::EPERM
+            } else {
+                0
+            }
         } else {
             0
         }
     });
-    assert_eq!(errno, 0, "restart_syscall must not be blocked by seccomp; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "restart_syscall must not be blocked by seccomp; got errno={errno}"
+    );
 }

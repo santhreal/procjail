@@ -23,10 +23,7 @@ fn create_sh_harness(dir: &Path, script: &str) -> std::path::PathBuf {
 #[test]
 fn parallel_spawn_with_timeouts() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho hello\nsleep 60\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho hello\nsleep 60\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -102,19 +99,12 @@ fn parallel_rapid_exit() {
 #[test]
 #[cfg(target_os = "linux")]
 fn parallel_mixed_strategies() {
-    let strategies = vec![
-        Strategy::None,
-        Strategy::Unshare,
-        Strategy::Bubblewrap,
-    ];
+    let strategies = [Strategy::None, Strategy::Unshare, Strategy::Bubblewrap];
 
     let mut handles = Vec::new();
-    for (idx, strategy) in strategies.iter().cycle().take(12).enumerate() {
+    for strategy in strategies.iter().cycle().take(12) {
         let dir = tempfile::tempdir().unwrap();
-        let harness = create_sh_harness(
-            dir.path(),
-            "#!/bin/sh\necho hello\n",
-        );
+        let harness = create_sh_harness(dir.path(), "#!/bin/sh\necho hello\n");
         let w = dir.path().to_path_buf();
         let s = *strategy;
         handles.push(std::thread::spawn(move || {
@@ -190,10 +180,7 @@ fn parallel_io_on_separate_processes() {
 #[test]
 fn parallel_mass_kill() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nsleep 300\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nsleep 300\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -203,7 +190,8 @@ fn parallel_mass_kill() {
 
     let mut procs = Vec::new();
     for _ in 0..32 {
-        let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+        let proc =
+            SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
         procs.push(proc);
     }
 

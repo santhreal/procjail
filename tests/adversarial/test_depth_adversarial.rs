@@ -75,7 +75,7 @@ fn test_unicode_env_vars() {
     let dir = tempfile::tempdir().unwrap();
     let harness = dir.path().join("harness.sh");
     std::fs::write(&harness, "#!/bin/sh\nexit 0\n").unwrap();
-    
+
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -99,7 +99,7 @@ fn test_zero_max_recv_limit() {
     let dir = tempfile::tempdir().unwrap();
     let harness = dir.path().join("harness.sh");
     std::fs::write(&harness, "#!/bin/sh\nexit 0\n").unwrap();
-    
+
     let work = tempfile::tempdir().unwrap();
 
     let res = SandboxedProcess::spawn(&harness, work.path(), &config);

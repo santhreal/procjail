@@ -1,5 +1,5 @@
+use procjail::SandboxConfig;
 use std::path::PathBuf;
-use procjail::{SandboxConfig, SandboxConfigBuilder, Strategy, EnvMode};
 
 #[test]
 fn default_config() {

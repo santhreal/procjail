@@ -49,7 +49,11 @@ fn all_strategies_can_echo() {
         };
 
         let line = proc.recv().expect("recv failed").expect("eof early");
-        assert_eq!(line.trim(), "hello", "strategy {strategy} must allow basic echo");
+        assert_eq!(
+            line.trim(),
+            "hello",
+            "strategy {strategy} must allow basic echo"
+        );
         let usage = proc.wait_with_usage().expect("wait failed");
         assert_eq!(usage.exit_code, 0, "strategy {strategy} must exit 0");
     }
@@ -76,7 +80,10 @@ fn bwrap_readonly_mount_is_readonly() {
         .runtime("sh")
         .timeout_seconds(5)
         .strategy(Strategy::Bubblewrap)
-        .readonly_mount(ro_dir.path().to_str().unwrap(), ro_dir.path().to_str().unwrap())
+        .readonly_mount(
+            ro_dir.path().to_str().unwrap(),
+            ro_dir.path().to_str().unwrap(),
+        )
         .build();
 
     let mut proc = match SandboxedProcess::spawn(&harness, work_dir.path(), &config) {
@@ -90,7 +97,11 @@ fn bwrap_readonly_mount_is_readonly() {
     };
 
     let line = proc.recv().expect("recv failed").expect("eof early");
-    assert_eq!(line.trim(), "READONLY", "readonly mount must be read-only under bwrap");
+    assert_eq!(
+        line.trim(),
+        "READONLY",
+        "readonly mount must be read-only under bwrap"
+    );
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0);
 }
@@ -114,7 +125,10 @@ fn bwrap_writable_mount_is_writable() {
         .runtime("sh")
         .timeout_seconds(5)
         .strategy(Strategy::Bubblewrap)
-        .writable_mount(rw_dir.path().to_str().unwrap(), rw_dir.path().to_str().unwrap())
+        .writable_mount(
+            rw_dir.path().to_str().unwrap(),
+            rw_dir.path().to_str().unwrap(),
+        )
         .build();
 
     let mut proc = match SandboxedProcess::spawn(&harness, work_dir.path(), &config) {
@@ -128,10 +142,17 @@ fn bwrap_writable_mount_is_writable() {
     };
 
     let line = proc.recv().expect("recv failed").expect("eof early");
-    assert_eq!(line.trim(), "WRITABLE", "writable mount must be writable under bwrap");
+    assert_eq!(
+        line.trim(),
+        "WRITABLE",
+        "writable mount must be writable under bwrap"
+    );
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0);
-    assert!(rw_dir.path().join("out.txt").exists(), "file must exist on host after write");
+    assert!(
+        rw_dir.path().join("out.txt").exists(),
+        "file must exist on host after write"
+    );
 }
 
 /// Verify that stderr capture works when enabled.
@@ -150,7 +171,8 @@ fn stderr_capture_mode() {
         .capture_stderr(true)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(line.trim(), "stdout_line");
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -163,29 +185,18 @@ fn stderr_capture_mode() {
 #[test]
 fn runtime_args_are_passed() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho \"$1\"\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho \"$1\"\n");
 
+    // Empty runtime_args: harness path is argv[1] ($1 inside the script = work_dir).
     let config = SandboxConfig::builder()
-        .runtime("sh")
-        .runtime_args(&["-c"])
-        .timeout_seconds(5)
-        .strategy(Strategy::None)
-        .build();
-
-    // With -c, sh treats $1 as the script to run, and $2 as the work_dir.
-    // The harness path becomes the command string.  This is tricky with sh -c,
-    // so we use a different runtime arg that doesn't change semantics.
-    let config2 = SandboxConfig::builder()
         .runtime("sh")
         .runtime_args(&[])
         .timeout_seconds(5)
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config2).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     // $1 inside the harness script is the work_dir path.
     assert_eq!(line.trim(), work_dir.path().to_str().unwrap());
@@ -230,7 +241,8 @@ fn absolute_runtime_path_no_lookup() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(line.trim(), "ok");
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -243,7 +255,8 @@ fn quick_spawn_default_timeout() {
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho ok\n");
 
-    let mut proc = procjail::quick_spawn("sh", &harness, work_dir.path()).expect("quick_spawn failed");
+    let mut proc =
+        procjail::quick_spawn("sh", &harness, work_dir.path()).expect("quick_spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(line.trim(), "ok");
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -254,7 +267,13 @@ fn quick_spawn_default_timeout() {
 #[test]
 fn strategy_display_is_nonempty() {
     use procjail::Strategy;
-    for s in [Strategy::None, Strategy::RlimitsOnly, Strategy::Unshare, Strategy::Bubblewrap, Strategy::Firejail] {
+    for s in [
+        Strategy::None,
+        Strategy::RlimitsOnly,
+        Strategy::Unshare,
+        Strategy::Bubblewrap,
+        Strategy::Firejail,
+    ] {
         let txt = format!("{s}");
         assert!(!txt.is_empty(), "strategy display must not be empty");
     }

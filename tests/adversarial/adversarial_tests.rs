@@ -1,5 +1,5 @@
-use std::path::Path;
 use procjail::{SandboxConfig, SandboxedProcess, Strategy};
+use std::path::Path;
 
 #[test]
 fn spawn_nonexistent_runtime() {
@@ -14,7 +14,8 @@ fn spawn_nonexistent_runtime() {
     let result = SandboxedProcess::spawn(harness.path(), work.path(), &config);
     match result {
         Err(error) => assert!(
-            error.to_string().contains("not found in PATH") || error.to_string().contains("No such file or directory"),
+            error.to_string().contains("not found in PATH")
+                || error.to_string().contains("No such file or directory"),
             "unexpected error: {error}"
         ),
         Ok(_) => panic!("spawn should fail for a missing runtime"),

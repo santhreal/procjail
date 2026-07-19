@@ -23,7 +23,10 @@ fn verify_seccomp_prctl_not_allowed() {
 
 #[test]
 fn verify_seccomp_errors_not_swallowed() {
-    let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/process/builder.rs"));
+    let src = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/process/builder.rs"
+    ));
     assert!(
         !src.contains("let _ = crate::seccomp::apply_seccomp_filter();"),
         "seccomp filter application errors must not be silently ignored"
@@ -32,7 +35,10 @@ fn verify_seccomp_errors_not_swallowed() {
 
 #[test]
 fn verify_custom_provider_enforces_limits() {
-    let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/process/builder.rs"));
+    let src = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/process/builder.rs"
+    ));
     let provider_block = src
         .split("if let Some(ref provider) = config.custom_provider")
         .nth(1)
@@ -51,7 +57,9 @@ fn verify_custom_provider_enforces_limits() {
 fn verify_bubblewrap_preferred_over_unshare() {
     let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect.rs"));
     let unshare_idx = src.find("Strategy::Unshare").expect("Unshare not found");
-    let bwrap_idx = src.find("Strategy::Bubblewrap").expect("Bubblewrap not found");
+    let bwrap_idx = src
+        .find("Strategy::Bubblewrap")
+        .expect("Bubblewrap not found");
     assert!(
         bwrap_idx < unshare_idx,
         "Bubblewrap (stronger isolation) should be preferred over Unshare in auto-detection"
@@ -60,7 +68,10 @@ fn verify_bubblewrap_preferred_over_unshare() {
 
 #[test]
 fn verify_bwrap_mounts_runtime_and_harness() {
-    let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/process/builder.rs"));
+    let src = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/process/builder.rs"
+    ));
     let bwrap_block = src
         .split("fn build_bwrap_command")
         .nth(1)
@@ -93,7 +104,10 @@ fn verify_cgroup_pids_max_set() {
 
 #[test]
 fn verify_rlimit_nofile_nproc_set() {
-    let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/process/builder.rs"));
+    let src = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/process/builder.rs"
+    ));
     let isolation_block = src
         .split("fn apply_pre_exec_isolation")
         .nth(1)
@@ -111,7 +125,10 @@ fn verify_rlimit_nofile_nproc_set() {
 #[test]
 fn verify_unshare_probe_matches_actual_command() {
     let detect_src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect.rs"));
-    let builder_src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/process/builder.rs"));
+    let builder_src = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/process/builder.rs"
+    ));
     let probe = detect_src
         .split("fn check_unshare()")
         .nth(1)
@@ -132,7 +149,10 @@ fn verify_unshare_probe_matches_actual_command() {
 #[test]
 fn verify_bwrap_probe_matches_actual_command() {
     let detect_src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/detect.rs"));
-    let builder_src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/process/builder.rs"));
+    let builder_src = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/process/builder.rs"
+    ));
     let probe = detect_src
         .split("fn check_bubblewrap()")
         .nth(1)

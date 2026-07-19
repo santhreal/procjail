@@ -5,7 +5,6 @@
 pub mod test_depth_property;
 
 use proptest::prelude::*;
-use std::path::PathBuf;
 
 use procjail::{EnvMode, SandboxConfig, Strategy};
 
@@ -84,9 +83,11 @@ proptest! {
     fn stripped_env_vars_contains_defaults_when_enabled(
         extra in prop::collection::hash_set("[A-Z][A-Z0-9_]{0,20}", 0..10)
     ) {
-        let mut config = SandboxConfig::default();
-        config.env_strip = extra.iter().cloned().collect();
-        config.env_strip_secrets = true;
+        let config = SandboxConfig {
+            env_strip: extra.iter().cloned().collect(),
+            env_strip_secrets: true,
+            ..Default::default()
+        };
         let stripped = config.stripped_env_vars();
         for var in procjail::DEFAULT_SECRET_ENV_VARS {
             prop_assert!(stripped.contains(*var));
@@ -100,9 +101,11 @@ proptest! {
     fn stripped_env_vars_omits_defaults_when_disabled(
         extra in prop::collection::hash_set("[A-Z][A-Z0-9_]{0,20}", 0..10)
     ) {
-        let mut config = SandboxConfig::default();
-        config.env_strip = extra.iter().cloned().collect();
-        config.env_strip_secrets = false;
+        let config = SandboxConfig {
+            env_strip: extra.iter().cloned().collect(),
+            env_strip_secrets: false,
+            ..Default::default()
+        };
         let stripped = config.stripped_env_vars();
         for var in procjail::DEFAULT_SECRET_ENV_VARS {
             prop_assert!(!stripped.contains(*var));

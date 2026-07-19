@@ -214,17 +214,15 @@ fn test_spawn_passes_work_dir_as_harness_argument() {
 #[test]
 fn test_sh_can_fork_and_exec_env() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\n\nenv\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\n\nenv\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
 
     let mut env_output = String::new();
     while let Ok(Some(line)) = proc.recv() {
@@ -239,7 +237,6 @@ fn test_sh_can_fork_and_exec_env() {
     let usage = proc.wait_with_usage().expect("wait failed");
     assert_eq!(usage.exit_code, 0, "env must exit 0");
 }
-
 
 /// A custom provider that does not replace the runtime but is still active.
 /// It proves that `build_command` applies rlimits and seccomp *after* the
@@ -300,18 +297,38 @@ printf "MKDIR_ERR=%s\n" "$OUT"
         lines.push(line);
     }
 
-    let output = lines.join("
-");
-    assert!(output.contains("CUSTOM_PROVIDER=active"), "custom provider must run: {output}");
-    assert!(output.contains("MEMORY_KB=125952"), "RLIMIT_AS must be 123 MiB in KB: {output}");
-    assert!(output.contains("CPU_SEC=456"), "RLIMIT_CPU must be 456s: {output}");
-    assert!(output.contains("MAX_FDS=89"), "RLIMIT_NOFILE must be 89: {output}");
-    assert!(output.contains("MKDIR_EXIT=1"), "mkdir must fail under seccomp: {output}");
+    let output = lines.join(
+        "
+",
+    );
+    assert!(
+        output.contains("CUSTOM_PROVIDER=active"),
+        "custom provider must run: {output}"
+    );
+    assert!(
+        output.contains("MEMORY_KB=125952"),
+        "RLIMIT_AS must be 123 MiB in KB: {output}"
+    );
+    assert!(
+        output.contains("CPU_SEC=456"),
+        "RLIMIT_CPU must be 456s: {output}"
+    );
+    assert!(
+        output.contains("MAX_FDS=89"),
+        "RLIMIT_NOFILE must be 89: {output}"
+    );
+    assert!(
+        output.contains("MKDIR_EXIT=1"),
+        "mkdir must fail under seccomp: {output}"
+    );
     assert!(
         output.contains("MKDIR_ERR=mkdir: ") && output.contains("Operation not permitted"),
         "mkdir must fail with EPERM, got: {output}"
     );
 
     let usage = proc.wait_with_usage().expect("wait failed");
-    assert_eq!(usage.exit_code, 0, "harness must exit cleanly after reporting");
+    assert_eq!(
+        usage.exit_code, 0,
+        "harness must exit cleanly after reporting"
+    );
 }

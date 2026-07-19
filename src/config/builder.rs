@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Strategy, provider::SandboxProvider};
+use crate::{provider::SandboxProvider, Strategy};
 
 use crate::config::SandboxConfig;
 
@@ -247,4 +247,3 @@ impl std::fmt::Display for EnvMode {
         f.write_str(name)
     }
 }
-

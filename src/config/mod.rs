@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use crate::provider::SandboxProvider;
 use crate::strategy::Strategy;
 
-pub use crate::config::builder::{SandboxConfigBuilder, EnvMode};
+pub use crate::config::builder::{EnvMode, SandboxConfigBuilder};
 use crate::Result;
 use std::sync::Arc;
 
@@ -63,6 +63,7 @@ pub const DEFAULT_SECRET_ENV_PREFIXES: &[&str] = &["AWS_", "GCP_", "AZURE_"];
 /// `SandboxConfig` is `Send` and `Sync`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct SandboxConfig {
     /// Maximum memory in bytes.
     pub max_memory_bytes: u64,
@@ -170,7 +171,8 @@ impl SandboxConfig {
     /// # Errors
     /// Returns an error if the slice cannot be parsed as a TOML document.
     pub fn from_toml_bytes(bytes: &[u8]) -> Result<Self> {
-        let content = std::str::from_utf8(bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 in TOML configuration: {e}"))?;
+        let content = std::str::from_utf8(bytes)
+            .map_err(|e| anyhow::anyhow!("Invalid UTF-8 in TOML configuration: {e}"))?;
         let config = toml::from_str(content)?;
         Ok(config)
     }
@@ -258,16 +260,20 @@ mod require_hardware_limits_tests {
 
     #[test]
     fn builder_sets_require_hardware_limits() {
-        let config = SandboxConfig::builder().require_hardware_limits(true).build();
+        let config = SandboxConfig::builder()
+            .require_hardware_limits(true)
+            .build();
         assert!(config.require_hardware_limits);
-        let config = SandboxConfig::builder().require_hardware_limits(false).build();
+        let config = SandboxConfig::builder()
+            .require_hardware_limits(false)
+            .build();
         assert!(!config.require_hardware_limits);
     }
 
     #[test]
     fn require_hardware_limits_parses_from_toml() {
-        let config = SandboxConfig::from_toml_bytes(b"require_hardware_limits = true")
-            .expect("parse toml");
+        let config =
+            SandboxConfig::from_toml_bytes(b"require_hardware_limits = true").expect("parse toml");
         assert!(config.require_hardware_limits);
     }
 }

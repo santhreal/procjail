@@ -3,10 +3,9 @@
 //! These tests exercise boundary conditions: empty/minimal configs,
 //nested filters, 1000 rules, concurrent applications, crash recovery.
 
-use std::ffi::CString;
 use std::path::Path;
 
-use procjail::{seccomp, SandboxConfig, SandboxedProcess, Strategy};
+use procjail::{SandboxConfig, SandboxedProcess, Strategy};
 
 #[path = "seccomp_linux_helpers.rs"]
 mod linux_helpers;
@@ -57,11 +56,7 @@ where
             pid => {
                 libc::close(pipe_fds[1]);
                 let mut buf = [0u8; 4];
-                let n = libc::read(
-                    pipe_fds[0],
-                    buf.as_mut_ptr() as *mut libc::c_void,
-                    4,
-                );
+                let n = libc::read(pipe_fds[0], buf.as_mut_ptr() as *mut libc::c_void, 4);
                 libc::close(pipe_fds[0]);
                 let mut status = 0;
                 libc::waitpid(pid, &mut status, 0);
@@ -99,7 +94,8 @@ fn empty_config_strategy_none() {
         .strategy(Strategy::None)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(line.trim(), "ok");
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -110,7 +106,7 @@ fn empty_config_strategy_none() {
 #[test]
 #[cfg(not(target_os = "linux"))]
 fn seccomp_no_op_on_non_linux() {
-    let result = seccomp::apply_seccomp_filter();
+    let result = procjail::seccomp::apply_seccomp_filter();
     assert!(result.is_ok(), "seccomp must be a no-op on non-Linux");
 }
 
@@ -136,9 +132,7 @@ fn thousand_rule_filter_compiles_and_applies() {
             eprintln!("skipping thousand_rule test on unsupported arch");
             return;
         }
-    }
-    .try_into()
-    .expect("valid arch");
+    };
 
     let mut rules: BTreeMap<i64, Vec<SeccompRule>> = BTreeMap::new();
     // Add 1000 allow rules for fake syscall numbers that do not conflict
@@ -172,7 +166,12 @@ fn thousand_rule_filter_compiles_and_applies() {
             libc::prctl(libc::PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
             seccompiler::apply_filter(&bpf).expect("apply_filter failed");
             // Try a blocked syscall.
-            let ret = libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0);
+            let ret = libc::syscall(
+                libc::SYS_socket,
+                libc::AF_INET as usize,
+                libc::SOCK_STREAM as usize,
+                0,
+            );
             let errno = if ret < 0 {
                 std::io::Error::last_os_error().raw_os_error().unwrap_or(0)
             } else {
@@ -190,7 +189,11 @@ fn thousand_rule_filter_compiles_and_applies() {
         libc::waitpid(pid, &mut status, 0);
         assert_eq!(n, 4);
         let errno = i32::from_ne_bytes(buf);
-        assert_eq!(errno, libc::EPERM, "1000-rule filter must still block socket; got errno={errno}");
+        assert_eq!(
+            errno,
+            libc::EPERM,
+            "1000-rule filter must still block socket; got errno={errno}"
+        );
     }
 }
 
@@ -210,7 +213,12 @@ fn nested_seccomp_application_succeeds() {
             return libc::EINVAL;
         }
         // Verify the filter is still in force.
-        let ret = libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0);
+        let ret = libc::syscall(
+            libc::SYS_socket,
+            libc::AF_INET as usize,
+            libc::SOCK_STREAM as usize,
+            0,
+        );
         if ret < 0 {
             let e = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
             if e != libc::EPERM {
@@ -221,7 +229,10 @@ fn nested_seccomp_application_succeeds() {
         }
         0
     });
-    assert_eq!(errno, 0, "nested seccomp must succeed and remain restrictive; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "nested seccomp must succeed and remain restrictive; got errno={errno}"
+    );
 }
 
 // =============================================================================
@@ -257,7 +268,11 @@ fn segfault_under_seccomp_terminates_normally() {
             "segfault must terminate via signal; got status={status}"
         );
         let sig = libc::WTERMSIG(status);
-        assert_eq!(sig, libc::SIGSEGV, "segfault must deliver SIGSEGV; got sig={sig}");
+        assert_eq!(
+            sig,
+            libc::SIGSEGV,
+            "segfault must deliver SIGSEGV; got sig={sig}"
+        );
     }
 }
 
@@ -287,7 +302,11 @@ fn sigfpe_under_seccomp_terminates_normally() {
         // compiler optimizations.  We accept either a signal or a non-zero exit.
         if libc::WIFSIGNALED(status) {
             let sig = libc::WTERMSIG(status);
-            assert_eq!(sig, libc::SIGFPE, "division by zero must deliver SIGFPE; got sig={sig}");
+            assert_eq!(
+                sig,
+                libc::SIGFPE,
+                "division by zero must deliver SIGFPE; got sig={sig}"
+            );
         } else if libc::WIFEXITED(status) {
             // Compiler may optimize out the division; that's acceptable.
         } else {
@@ -324,7 +343,10 @@ fn many_file_descriptors_under_seccomp() {
         }
         0
     });
-    assert_eq!(errno, 0, "opening 1024 fds under seccomp must succeed; got errno={errno}");
+    assert_eq!(
+        errno, 0,
+        "opening 1024 fds under seccomp must succeed; got errno={errno}"
+    );
 }
 
 // =============================================================================
@@ -335,10 +357,7 @@ fn many_file_descriptors_under_seccomp() {
 #[test]
 fn empty_env_allowlist_strips_everything() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\nenv | wc -l\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nenv | wc -l\n");
 
     let config = SandboxConfig::builder()
         .runtime("sh")
@@ -346,7 +365,8 @@ fn empty_env_allowlist_strips_everything() {
         .env_mode(procjail::EnvMode::Allowlist)
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     let count: usize = line.trim().parse().unwrap_or(999);
     // Only the internally-injected SANTH_* vars should exist.
@@ -363,10 +383,7 @@ fn empty_env_allowlist_strips_everything() {
 #[test]
 fn thousand_env_vars_spawn_successfully() {
     let work_dir = tempfile::tempdir().unwrap();
-    let harness = create_sh_harness(
-        work_dir.path(),
-        "#!/bin/sh\necho STARTED\n",
-    );
+    let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho STARTED\n");
 
     let mut builder = SandboxConfig::builder()
         .runtime("sh")
@@ -377,7 +394,8 @@ fn thousand_env_vars_spawn_successfully() {
     }
 
     let config = builder.build();
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let line = proc.recv().expect("recv failed").expect("eof early");
     assert_eq!(line.trim(), "STARTED");
     let usage = proc.wait_with_usage().expect("wait failed");
@@ -396,26 +414,12 @@ fn nested_sandbox_spawn() {
     let inner_dir = tempfile::tempdir().unwrap();
 
     // The inner harness just prints its PID and exits.
-    let inner_harness = create_sh_harness(
-        inner_dir.path(),
-        "#!/bin/sh\necho INNER_PID=$$\n",
-    );
+    let inner_harness = create_sh_harness(inner_dir.path(), "#!/bin/sh\necho INNER_PID=$$\n");
 
     // The outer harness receives the absolute paths to the inner harness and
     // work dir, then spawns a second SandboxedProcess using them.
-    let outer_script = format!(
-        "#!/bin/sh\n\
-        read json\n\
-        # Parse the JSON manually with sed (no jq dependency)\n\
-        harness=$(echo \"$json\" | sed 's/.*\"harness\":\"\\([^\"]*\\)\".*/\\1/')\n\
-        workdir=$(echo \"$json\" | sed 's/.*\"workdir\":\"\\([^\"]*\\)\".*/\\1/')\n\
-        # Spawn inner sandbox\n\
-        \"$1\" \"$harness\" \"$workdir\" 2>/dev/null || echo SPAWN_FAILED\n",
-    );
-    // Actually, calling procjail from inside a shell script is hard without
-    // compiling Rust.  Instead, we use a simpler approach: the outer harness
-    // is a Python script that imports nothing and just executes the inner
-    // harness with Strategy::None.
+    // Outer harness is a Python script that executes the inner harness with
+    // Strategy::None (calling procjail from a shell script is impractical).
     let outer_harness = create_sh_harness(
         outer_dir.path(),
         &format!(
@@ -477,7 +481,8 @@ fn rapid_spawn_teardown() {
         .build();
 
     for _ in 0..50 {
-        let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+        let mut proc =
+            SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
         let _ = proc.recv();
         // Explicitly kill some, let others drop.
         if rand::random::<bool>() {
@@ -587,13 +592,21 @@ fn concurrent_seccomp_application_is_safe() {
     );
 
     // Verify the filter is actually in force in this process.
-    let ret = unsafe { libc::syscall(libc::SYS_socket, libc::AF_INET as usize, libc::SOCK_STREAM as usize, 0) };
+    let ret = unsafe {
+        libc::syscall(
+            libc::SYS_socket,
+            libc::AF_INET as usize,
+            libc::SOCK_STREAM as usize,
+            0,
+        )
+    };
     if ret >= 0 {
         panic!("concurrent application left socket unblocked");
     }
     let errno = std::io::Error::last_os_error().raw_os_error().unwrap_or(0);
     assert_eq!(
-        errno, libc::EPERM,
+        errno,
+        libc::EPERM,
         "filter must be active after concurrent application; got errno={errno}"
     );
 }

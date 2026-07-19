@@ -58,7 +58,8 @@ fn env_set_cannot_override_secret_stripping() {
         .env_set("GITHUB_TOKEN", "attacker_value")
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let mut output = String::new();
     while let Ok(Some(line)) = proc.recv() {
         output.push_str(&line);
@@ -86,7 +87,8 @@ fn allowlist_mode_cannot_resurrect_secrets() {
         .env_passthrough(&["OPENAI_API_KEY"])
         .build();
 
-    let mut proc = SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
+    let mut proc =
+        SandboxedProcess::spawn(&harness, work_dir.path(), &config).expect("spawn failed");
     let mut output = String::new();
     while let Ok(Some(line)) = proc.recv() {
         output.push_str(&line);
@@ -196,7 +198,10 @@ fn custom_provider_still_requires_absolute_paths() {
 
     let harness = tempfile::NamedTempFile::new().unwrap();
     let result = SandboxedProcess::spawn(harness.path(), Path::new("relative/path"), &config);
-    assert!(result.is_err(), "custom provider must not bypass absolute path checks");
+    assert!(
+        result.is_err(),
+        "custom provider must not bypass absolute path checks"
+    );
 }
 
 // Regression: huge environment values could cause ENOMEM or truncation.
