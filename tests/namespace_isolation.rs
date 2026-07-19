@@ -5,6 +5,7 @@
 
 use std::path::Path;
 
+use procjail::probe_capabilities;
 use procjail::{SandboxConfig, SandboxedProcess, Strategy};
 
 fn create_sh_harness(dir: &Path, script: &str) -> std::path::PathBuf {
@@ -42,6 +43,10 @@ fn skip_if_unavailable(
 #[test]
 #[cfg(target_os = "linux")]
 fn unshare_pid_namespace_shows_pid_one() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho $$\n");
 
@@ -73,6 +78,10 @@ fn unshare_pid_namespace_shows_pid_one() {
 #[test]
 #[cfg(target_os = "linux")]
 fn bwrap_pid_namespace_shows_pid_one() {
+    let caps = probe_capabilities();
+    if !caps.has_bubblewrap {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho $$\n");
 
@@ -101,6 +110,10 @@ fn bwrap_pid_namespace_shows_pid_one() {
 #[test]
 #[cfg(target_os = "linux")]
 fn firejail_pid_namespace_isolates() {
+    let caps = probe_capabilities();
+    if !caps.has_firejail {
+        return; // host lacks firejail (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\necho $$\n");
 
@@ -135,6 +148,10 @@ fn firejail_pid_namespace_isolates() {
 #[test]
 #[cfg(target_os = "linux")]
 fn unshare_cannot_see_host_pids() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nls /proc | wc -w\n");
 
@@ -172,6 +189,10 @@ fn unshare_cannot_see_host_pids() {
 #[test]
 #[cfg(target_os = "linux")]
 fn unshare_network_namespace_isolates_interfaces() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(
         work_dir.path(),
@@ -208,6 +229,10 @@ fn unshare_network_namespace_isolates_interfaces() {
 #[test]
 #[cfg(target_os = "linux")]
 fn bwrap_network_namespace_blocks_external() {
+    let caps = probe_capabilities();
+    if !caps.has_bubblewrap {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     // Try to reach an external host.  This should fail.
     let harness = create_sh_harness(
@@ -245,6 +270,10 @@ fn bwrap_network_namespace_blocks_external() {
 #[test]
 #[cfg(target_os = "linux")]
 fn bwrap_allow_localhost_permits_network() {
+    let caps = probe_capabilities();
+    if !caps.has_bubblewrap {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(
         work_dir.path(),
@@ -282,6 +311,10 @@ fn bwrap_allow_localhost_permits_network() {
 #[test]
 #[cfg(target_os = "linux")]
 fn firejail_network_namespace_blocks_external() {
+    let caps = probe_capabilities();
+    if !caps.has_firejail {
+        return; // host lacks firejail (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(
         work_dir.path(),
@@ -327,6 +360,10 @@ fn firejail_network_namespace_blocks_external() {
 #[test]
 #[cfg(target_os = "linux")]
 fn unshare_mount_namespace_isolates_changes() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let host_marker = work_dir.path().join("host_visible");
     std::fs::write(&host_marker, "before").unwrap();
@@ -380,6 +417,10 @@ fn unshare_mount_namespace_isolates_changes() {
 #[test]
 #[cfg(target_os = "linux")]
 fn bwrap_filesystem_isolation_blocks_host_root() {
+    let caps = probe_capabilities();
+    if !caps.has_bubblewrap {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(
         work_dir.path(),
@@ -417,6 +458,10 @@ fn bwrap_filesystem_isolation_blocks_host_root() {
 #[test]
 #[cfg(target_os = "linux")]
 fn firejail_filesystem_isolation_private_workdir() {
+    let caps = probe_capabilities();
+    if !caps.has_firejail {
+        return; // host lacks firejail (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\npwd\n");
 
@@ -453,6 +498,10 @@ fn firejail_filesystem_isolation_private_workdir() {
 #[test]
 #[cfg(target_os = "linux")]
 fn unshare_user_namespace_maps_root() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(work_dir.path(), "#!/bin/sh\nid -u\n");
 
@@ -485,6 +534,10 @@ fn unshare_user_namespace_maps_root() {
 #[test]
 #[cfg(target_os = "linux")]
 fn unshare_root_cannot_bypass_seccomp() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let harness = create_sh_harness(
         work_dir.path(),
@@ -535,6 +588,10 @@ print(errno.errorcode.get(ctypes.get_errno(), \"UNKNOWN\"))
 #[test]
 #[cfg(target_os = "linux")]
 fn namespaced_process_cannot_signal_parent() {
+    let caps = probe_capabilities();
+    if !caps.has_unshare {
+        return; // host blocks this strategy (probe-verified)
+    }
     let work_dir = tempfile::tempdir().unwrap();
     let parent_pid = std::process::id();
     let harness = create_sh_harness(
